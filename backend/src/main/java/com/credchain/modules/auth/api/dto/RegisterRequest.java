@@ -1,5 +1,6 @@
 package com.credchain.modules.auth.api.dto;
 
+import com.credchain.common.validation.StrongPassword;
 import com.credchain.modules.user.domain.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
@@ -15,9 +16,7 @@ public record RegisterRequest(
         String email,
 
         @Schema(example = "Str0ng@Pass")
-        @NotBlank
-        @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{8,72}$",
-                message = "Password must be 8-72 characters with uppercase, lowercase, digit and special character")
+        @StrongPassword
         String password,
 
         @Schema(example = "Chaitanya Pawar")

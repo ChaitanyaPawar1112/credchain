@@ -1,5 +1,6 @@
 package com.credchain.modules.auth.api;
 
+import com.credchain.modules.auth.api.dto.ChangePasswordRequest;
 import com.credchain.modules.auth.api.dto.AuthResponse;
 import com.credchain.modules.auth.api.dto.LoginRequest;
 import com.credchain.modules.auth.api.dto.RefreshTokenRequest;
@@ -68,6 +69,15 @@ public class AuthController {
     @Operation(summary = "Logout from all devices")
     public void logoutAll(@AuthenticationPrincipal Jwt jwt) {
         authService.logoutAll(UUID.fromString(jwt.getSubject()));
+    }
+
+    @PostMapping("/change-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Change password (logs out all sessions)")
+    public void changePassword(@AuthenticationPrincipal Jwt jwt,
+                               @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(UUID.fromString(jwt.getSubject()), request);
     }
 
     @GetMapping("/me")

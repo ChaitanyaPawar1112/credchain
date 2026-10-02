@@ -4,6 +4,7 @@ import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.common.security.SecurityProperties;
 import com.credchain.modules.auth.api.dto.AuthResponse;
+import com.credchain.modules.auth.api.dto.ChangePasswordRequest;
 import com.credchain.modules.auth.api.dto.LoginRequest;
 import com.credchain.modules.auth.api.dto.RegisterRequest;
 import com.credchain.modules.auth.api.dto.UserSummary;
@@ -30,7 +31,6 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
     private final SecurityProperties properties;
@@ -62,7 +62,6 @@ public class AuthService {
             throw new BusinessException(ErrorCode.BAD_REQUEST,
                     "Self-registration is only allowed for STUDENT or VERIFIER");
         }
-
 
         String email = User.normalizeEmail(request.email());
         if (userRepository.existsByEmail(email)) {
@@ -96,7 +95,6 @@ public class AuthService {
 
         if (user == null) {
             passwordEncoder.matches(request.password(), dummyPasswordHash); // equal timing
-
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
@@ -129,7 +127,6 @@ public class AuthService {
         User user = rotation.user();
 
         if (!user.isActive()) {
-
             refreshTokenService.revokeAll(user.getId());
             throw new BusinessException(ErrorCode.ACCOUNT_NOT_ACTIVE);
         }
@@ -148,6 +145,26 @@ public class AuthService {
         refreshTokenService.revokeAll(userId);
     }
 
+    // ---------- Change password ----------
+
+    @Transactional
+    public void changePassword(UUID userId, ChangePasswordRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "User not found"));
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.CURRENT_PASSWORD_INCORRECT);
+        }
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST,
+                    "New password must be different from the current password");
+        }
+
+        user.changePassword(passwordEncoder.encode(request.newPassword()));
+        refreshTokenService.revokeAll(user.getId());   // log out every device
+        log.info("Password changed for user {} - all sessions revoked", userId);
+    }
+
     // ---------- Current user ----------
 
     @Transactional(readOnly = true)
@@ -162,7 +179,6 @@ public class AuthService {
     private AuthResponse issueTokens(User user, ClientInfo client) {
         IssuedToken access = accessTokenService.issue(user);
         IssuedToken refresh = refreshTokenService.issue(user, client);
-
         return AuthResponse.of(user, access, refresh);
     }
 

@@ -26,7 +26,9 @@ public enum ErrorCode {
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"),
 
     // ---------- User ----------
-    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "An account with this email already exists");
+    // ---------- User ----------
+    EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "An account with this email already exists"),
+    CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "Current password is incorrect");
 
     private final HttpStatus status;
     private final String defaultMessage;
