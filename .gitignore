@@ -1,0 +1,52 @@
+# ===== IDE =====
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# ===== Java / Maven / Gradle =====
+target/
+build/
+*.class
+*.jar
+*.war
+!**/.mvn/wrapper/maven-wrapper.jar
+.gradle/
+
+# ===== Node / Frontend =====
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+
+# ===== Python / AI service =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# ===== Hardhat / Smart contracts =====
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+contracts/coverage/
+
+# ===== Secrets (NEVER commit) =====
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ===== Logs & uploads =====
+logs/
+*.log
+uploads/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini

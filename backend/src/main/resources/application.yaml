@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: credchain-backend
+
+  # Which profile is active (dev = local machine, prod = server later)
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  # ---------- Database ----------
+  # ${NAME:default} means: read env variable NAME, else use the default
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:credchain}
+    username: ${DB_USERNAME:credchain}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      pool-name: credchain-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+
+  # ---------- JPA / Hibernate ----------
+  jpa:
+    open-in-view: false          # industry best practice: no lazy DB calls from controllers
+    hibernate:
+      ddl-auto: validate         # Flyway creates tables; Hibernate only checks them
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: true
+
+  # ---------- Flyway (database migrations) ----------
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+# ---------- Monitoring ----------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

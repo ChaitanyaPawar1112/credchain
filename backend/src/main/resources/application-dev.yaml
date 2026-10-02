@@ -1,0 +1,20 @@
+# ===== Settings only for local development =====
+
+spring:
+  jpa:
+    show-sql: true               # print every SQL query in the console
+
+  # Faster restarts while coding
+  devtools:
+    restart:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.credchain: DEBUG                         # detailed logs for OUR code
+    org.hibernate.SQL: DEBUG                     # SQL queries
+    org.hibernate.orm.jdbc.bind: TRACE           # values passed into queries
+    org.flywaydb: INFO                           # migration logs
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n"
