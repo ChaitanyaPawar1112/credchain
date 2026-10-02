@@ -103,4 +103,7 @@ public class User extends BaseEntity {
     public void changePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
     }
+    public void markEmailVerified() {
+        this.emailVerified = true;
+    }
 }
