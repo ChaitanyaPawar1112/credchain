@@ -1,0 +1,28 @@
+# ===================================================
+# Settings used ONLY when running automated tests
+# (activated by @ActiveProfiles("test"))
+# ===================================================
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/credchain_test
+    username: ${DB_USERNAME:credchain}
+    password: ${DB_PASSWORD:changeme}
+    hikari:
+      maximum-pool-size: 5
+
+app:
+  security:
+    jwt:
+      # Test-only key: safe to commit, never used outside tests
+      secret: i4/uEShHS5jPLPdCroqnDt/f24JubGEHswroZ25OZZIKw+MxqiIGLwLwvSx5QD+JV9B2vpiA6FWumusEad5frg==
+    login:
+      max-failed-attempts: 3        # smaller number = faster lockout test
+  bootstrap:
+    super-admin:
+      email: ""                     # tests create their own users
+
+logging:
+  level:
+    root: WARN
+    com.credchain: INFO
