@@ -1,0 +1,57 @@
+# ===================================================
+# PRODUCTION settings (activated with SPRING_PROFILES_ACTIVE=prod)
+# Rule: no default values for anything secret or environment-specific.
+# ===================================================
+
+spring:
+  datasource:
+    # No defaults: app must fail to start if these are missing
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+server:
+  # Trust X-Forwarded-* headers from the reverse proxy (Nginx) for real client IPs
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+    include-message: never
+
+# ---------- Hide API docs in production ----------
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+
+    enabled: false
+
+# ---------- Health: no internal details to the public ----------
+management:
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true      # /actuator/health/liveness and /readiness for cloud platforms
+
+app:
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}   # e.g. https://credchain.app
+
+# ---------- Logging: quieter, structured JSON for log tools ----------
+logging:
+  structured:
+    format:
+      console: ecs        # one JSON line per log entry (Elastic Common Schema)
+  level:
+    root: INFO
+    com.credchain: INFO
+    org.hibernate.SQL: WARN

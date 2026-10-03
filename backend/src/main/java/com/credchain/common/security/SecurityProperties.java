@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -29,8 +30,8 @@ public record SecurityProperties(
             @NotBlank String issuer,
             @NotBlank @Size(min = 44, message = "JWT secret must be at least 256 bits (44 base64 chars)")
             String secret,
-            @NotNull Duration accessTokenTtl,
 
+            @NotNull Duration accessTokenTtl,
             @NotNull Duration refreshTokenTtl
     ) {}
 
@@ -39,7 +40,15 @@ public record SecurityProperties(
             @NotNull Duration lockDuration
     ) {}
 
+    /**
+     * Each origin must be a real URL. This also catches an unset
+     * ${CORS_ALLOWED_ORIGINS} placeholder, which Spring would otherwise keep as literal text.
+     */
     public record Cors(
-            @NotEmpty List<String> allowedOrigins
+            @NotEmpty
+            List<@NotBlank @Pattern(
+                    regexp = "^https?://[A-Za-z0-9.-]+(:\\d{1,5})?$",
+                    message = "must be a URL like https://credchain.app or http://localhost:5173 (set CORS_ALLOWED_ORIGINS)")
+                    String> allowedOrigins
     ) {}
 }
