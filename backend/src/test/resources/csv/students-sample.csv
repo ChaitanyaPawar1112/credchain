@@ -1,0 +1,10 @@
+enrollmentNo,fullName,email,dateOfBirth,program,department,admissionYear,graduationYear
+2022CS002,Aarav Joshi,aarav.joshi@example.com,2004-03-18,B.Tech Computer Engineering,Computer Engineering,2022,2026
+2022CS003,"Deshpande, Isha",isha.d@example.com,2004-07-02,B.Tech Computer Engineering,Computer Engineering,2022,2026
+2022IT015,Rohan Shinde,,2003-11-25,B.Tech Information Technology,Information Technology,2022,
+2022CS001,Chaitanya Pawar,chaitanya@example.com,2004-05-12,B.Tech Computer Engineering,Computer Engineering,2022,2026
+2022CS002,Aarav Duplicate,dup@example.com,2004-01-01,B.Tech Computer Engineering,,2022,2026
+2022ME021,Priya More,not-an-email,2004-02-10,B.Tech Mechanical,Mechanical,2022,2026
+2022ME022,,priya.m@example.com,2004-02-10,B.Tech Mechanical,Mechanical,2022,2026
+2022EE030,Kunal Jadhav,kunal@example.com,10/02/2004,B.Tech Electrical,Electrical,twenty22,2026
+2022EE031,Neha Gaikwad,neha@example.com,2004-09-09,B.Tech Electrical,Electrical,2022,2020

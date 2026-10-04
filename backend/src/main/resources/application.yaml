@@ -8,7 +8,6 @@ spring:
       - "optional:file:./infra/.env[.properties]"
       - "optional:file:../infra/.env[.properties]"
 
-  # Which profile is active (dev = local machine, prod = server later)
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
@@ -32,6 +31,8 @@ spring:
       hibernate:
         jdbc:
           time_zone: UTC
+          batch_size: 50          # group INSERTs into batches of 50 (bulk import)
+        order_inserts: true
         format_sql: true
 
   # ---------- Flyway ----------
@@ -39,6 +40,12 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+
+  # ---------- File uploads ----------
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 2MB
 
 server:
   port: ${SERVER_PORT:8080}

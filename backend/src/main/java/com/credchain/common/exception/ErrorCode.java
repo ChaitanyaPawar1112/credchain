@@ -14,6 +14,7 @@ public enum ErrorCode {
     // ---------- Generic ----------
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "One or more fields are invalid"),
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "The request is not valid"),
+    INVALID_FILE(HttpStatus.BAD_REQUEST, "The uploaded file is not a valid CSV"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "The requested resource was not found"),
     INVALID_STATE_TRANSITION(HttpStatus.CONFLICT, "This action is not allowed in the current state"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later"),
