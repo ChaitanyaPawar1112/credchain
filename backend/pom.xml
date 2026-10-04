@@ -47,6 +47,13 @@
 			<version>3.1.1</version>
 		</dependency>
 
+		<!-- ========== CSV parsing (Phase 2: bulk student import) ========== -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.14.1</version>
+		</dependency>
+
 		<!-- ========== Security testing ========== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

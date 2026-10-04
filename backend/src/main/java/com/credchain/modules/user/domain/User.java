@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -29,8 +30,8 @@ public class User extends BaseEntity {
     @Column(name = "full_name", nullable = false, length = 150)
     private String fullName;
 
-    @Column(name = "phone", length = 20)
 
+    @Column(name = "phone", length = 20)
     private String phone;
 
     @Enumerated(EnumType.STRING)
@@ -53,7 +54,15 @@ public class User extends BaseEntity {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
-    // ---------- Factory ----------
+    /** Set only for INSTITUTION_ADMIN users. */
+    @Column(name = "institution_id")
+    private UUID institutionId;
+
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword;
+
+    // ---------- Factories ----------
+
 
     public static User create(String email, String passwordHash, String fullName, String phone, Role role) {
         User user = new User();
@@ -63,9 +72,18 @@ public class User extends BaseEntity {
         user.phone = phone;
         user.role = role;
         user.status = UserStatus.ACTIVE;
-
         user.emailVerified = false;
         user.failedLoginAttempts = 0;
+        user.mustChangePassword = false;
+        return user;
+    }
+
+    /** Created when a SUPER_ADMIN approves an institution. Starts with a temporary password. */
+    public static User createInstitutionAdmin(String email, String temporaryPasswordHash,
+                                              String fullName, UUID institutionId) {
+        User user = create(email, temporaryPasswordHash, fullName, null, Role.INSTITUTION_ADMIN);
+        user.institutionId = institutionId;
+        user.mustChangePassword = true;
         return user;
     }
 
@@ -78,6 +96,7 @@ public class User extends BaseEntity {
     public boolean isActive() {
         return status == UserStatus.ACTIVE;
     }
+
 
     public boolean isLocked(Instant now) {
         return lockedUntil != null && lockedUntil.isAfter(now);
@@ -96,13 +115,15 @@ public class User extends BaseEntity {
         if (this.failedLoginAttempts >= maxAttempts) {
             this.lockedUntil = now.plus(lockDuration);
             this.failedLoginAttempts = 0;
-
         }
     }
 
+    /** Any real password change also clears the "temporary password" flag. */
     public void changePassword(String newPasswordHash) {
         this.passwordHash = newPasswordHash;
+        this.mustChangePassword = false;
     }
+
     public void markEmailVerified() {
         this.emailVerified = true;
     }

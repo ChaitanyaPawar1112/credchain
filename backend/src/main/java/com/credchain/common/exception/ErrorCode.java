@@ -14,7 +14,9 @@ public enum ErrorCode {
     // ---------- Generic ----------
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "One or more fields are invalid"),
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "The request is not valid"),
+    INVALID_FILE(HttpStatus.BAD_REQUEST, "The uploaded file is not a valid CSV"),
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "The requested resource was not found"),
+    INVALID_STATE_TRANSITION(HttpStatus.CONFLICT, "This action is not allowed in the current state"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later"),
 
     // ---------- Authentication / Authorization ----------
@@ -24,11 +26,21 @@ public enum ErrorCode {
     ACCOUNT_LOCKED(HttpStatus.LOCKED, "Account is temporarily locked due to failed login attempts"),
     ACCOUNT_NOT_ACTIVE(HttpStatus.FORBIDDEN, "Account is not active"),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"),
+    PASSWORD_CHANGE_REQUIRED(HttpStatus.FORBIDDEN, "You must change your temporary password first"),
 
     // ---------- User ----------
-    // ---------- User ----------
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "An account with this email already exists"),
-    CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+    CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "Current password is incorrect"),
+
+
+    // ---------- Institution ----------
+    INSTITUTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "An institution with this code, registration number or wallet already exists"),
+    INSTITUTION_NOT_APPROVED(HttpStatus.FORBIDDEN, "Institution is not approved"),
+
+    // ---------- Student ----------
+    STUDENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "A student with this enrollment number already exists"),
+    STUDENT_ALREADY_LINKED(HttpStatus.CONFLICT, "This student record is already linked to an account"),
+    INVALID_CLAIM_CODE(HttpStatus.BAD_REQUEST, "Claim code is invalid or has expired");
 
     private final HttpStatus status;
     private final String defaultMessage;
