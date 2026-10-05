@@ -1,0 +1,97 @@
+{
+  "runId": "2026-10-05T14:17:42.166Z",
+  "chainId": "11155111",
+  "contract": "0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0",
+  "wallet": "0xdB254B2fE0fE4E6f6BE86fE9f6765daBc3c40038",
+  "transactions": {
+    "addIssuer": "0xacdc60f2686394542a89a44fe2cbccdff6b46864bde91b4e9ca17e7d70add848",
+    "issueA": "0x49a460438fe03752c31a598379fab7b4438bc3b4ac3f12235edfe7d48dedf141",
+    "issueB": "0xf1cb7799eedca94b8ffc193a49cce5d8d7c31bea75e8a185623cf008390b91d6",
+    "revokeB": "0x5e392f16548df4982bf65cd8c881f3b4bf6d9736ed82263da20178da69255f67",
+    "issueBatch": "0x109400e1aca312780687252a32c1793df0db1250a8ea35a9a9113d6147b8c2d9"
+  },
+  "single": {
+    "certificateA": {
+      "data": {
+        "institution": "DEMO-INSTITUTE",
+        "enrollmentNo": "DEMO-001",
+        "fullName": "Demo Student A",
+        "program": "B.Tech Computer Science",
+        "graduationYear": 2026,
+        "cgpa": "8.75",
+        "runId": "2026-10-05T14:17:42.166Z"
+      },
+      "hash": "0xaa6f983f999c6820f9ad8a65bf6868a39c68f221317a0a508d6d8a1cbbeca20b",
+      "expected": "VALID"
+    },
+    "tamperedA": {
+      "hash": "0x661b4079b1fce182dc89b02931e324e6a184c73fd59af07ee8f7c956c13b6bf4",
+      "expected": "NOT_FOUND"
+    },
+    "certificateB": {
+      "data": {
+        "institution": "DEMO-INSTITUTE",
+        "enrollmentNo": "DEMO-002",
+        "fullName": "Demo Student B",
+        "program": "B.Tech Computer Science",
+        "graduationYear": 2026,
+        "cgpa": "7.10",
+        "runId": "2026-10-05T14:17:42.166Z"
+      },
+      "hash": "0xb29fae33934a2fb07123947e6ab08e58ba3e778ea93cbba309dfa0f5dfa5af4f",
+      "expected": "REVOKED"
+    }
+  },
+  "batch": {
+    "root": "0x6560f6d4e6755457ab7ccfb251a3676b13b9dbfad9d1e74db4758d2de4b2da49",
+    "entries": [
+      {
+        "data": {
+          "institution": "DEMO-INSTITUTE",
+          "enrollmentNo": "DEMO-101",
+          "fullName": "Demo Graduate 1",
+          "program": "B.Tech Computer Science",
+          "graduationYear": 2026,
+          "cgpa": "8.10",
+          "runId": "2026-10-05T14:17:42.166Z"
+        },
+        "hash": "0xe56067163b5789b3d34974aa58c4f6684065dd5867e2b6c7db0f2432ed38a0e2",
+        "proof": [
+          "0xa655fcfb03eacc28d58de9ab2c1dacaec0afb363386c91224ce9faf3038ada4a",
+          "0xf30ae32756f759eb0232e4a883215faef31eb9bde3d2cf672775d38c7c2d670a"
+        ]
+      },
+      {
+        "data": {
+          "institution": "DEMO-INSTITUTE",
+          "enrollmentNo": "DEMO-102",
+          "fullName": "Demo Graduate 2",
+          "program": "B.Tech Computer Science",
+          "graduationYear": 2026,
+          "cgpa": "9.02",
+          "runId": "2026-10-05T14:17:42.166Z"
+        },
+        "hash": "0x79443b7ba7276bacd71e379f9cfb3990b08a8d223614cf0a946e768be2fcd5d5",
+        "proof": [
+          "0x8e9ba9b6648157ffae23adfd26f13d9a1b4e48c37c92a5bd3a8229db97b1f232",
+          "0xf30ae32756f759eb0232e4a883215faef31eb9bde3d2cf672775d38c7c2d670a"
+        ]
+      },
+      {
+        "data": {
+          "institution": "DEMO-INSTITUTE",
+          "enrollmentNo": "DEMO-103",
+          "fullName": "Demo Graduate 3",
+          "program": "B.Tech Computer Science",
+          "graduationYear": 2026,
+          "cgpa": "7.66",
+          "runId": "2026-10-05T14:17:42.166Z"
+        },
+        "hash": "0x5209fcd0b9a54af55becfadcad49a4a28a7e32e63d0c3975b6ce45e1acc24521",
+        "proof": [
+          "0x9ba24e0158aceedecf2cb695d81b53eb92def807da07f56133b8b0d7e3b062bc"
+        ]
+      }
+    ]
+  }
+}
