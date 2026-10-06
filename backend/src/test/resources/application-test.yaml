@@ -25,6 +25,8 @@ app:
     enabled: false                  # tests must never send real transactions
     rpc-url: ""
     admin-private-key: ""
+    # Test-only AES-256 key: safe to commit, never used outside tests
+    wallet-encryption-key: 3aDSMzeQgUkgELHe+e7iCke/z5O/c/7OxNJwq+RkZYA=
 
 logging:
   level:

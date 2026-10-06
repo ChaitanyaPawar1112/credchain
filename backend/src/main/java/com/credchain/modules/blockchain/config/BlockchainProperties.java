@@ -1,5 +1,6 @@
 package com.credchain.modules.blockchain.config;
 
+import com.credchain.modules.blockchain.infrastructure.WalletKeyCipher;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -14,7 +15,7 @@ import java.time.Duration;
 
 /**
  * Settings for talking to the Ethereum network (app.blockchain.* in application.yaml).
- * Secrets (rpcUrl, adminPrivateKey) come from infra/.env and are never logged.
+ * Secrets (rpcUrl, adminPrivateKey, walletEncryptionKey) come from infra/.env and are never logged.
  */
 @Validated
 @ConfigurationProperties(prefix = "app.blockchain")
@@ -29,6 +30,7 @@ public record BlockchainProperties(
         /** Expected chain; the health check fails if the RPC is on a different network. */
         @Positive long chainId,
 
+
         /** Deployed CredentialRegistry address. */
         @NotNull
         @Pattern(regexp = "^0x[0-9a-fA-F]{40}$", message = "must be 0x followed by 40 hex characters")
@@ -39,6 +41,9 @@ public record BlockchainProperties(
 
         /** Platform admin wallet key (adds issuers, funds institution wallets). Secret. */
         String adminPrivateKey,
+
+        /** Base64 AES-256 master key that encrypts institution wallet keys at rest. Secret. */
+        String walletEncryptionKey,
 
         /** Blocks to wait after a transaction is mined before treating it as final. */
         @Min(1) @Max(64) int confirmations,
@@ -58,7 +63,9 @@ public record BlockchainProperties(
      */
     public BlockchainProperties {
         rpcUrl = rpcUrl == null ? null : rpcUrl.strip();
+
         contractAddress = contractAddress == null ? null : contractAddress.strip();
+        walletEncryptionKey = walletEncryptionKey == null ? null : walletEncryptionKey.strip();
         adminPrivateKey = adminPrivateKey == null ? null : adminPrivateKey.strip();
         if (adminPrivateKey != null && adminPrivateKey.matches("^[0-9a-fA-F]{64}$")) {
             adminPrivateKey = "0x" + adminPrivateKey;
@@ -78,18 +85,30 @@ public record BlockchainProperties(
         return !enabled || (adminPrivateKey != null && PRIVATE_KEY.matcher(adminPrivateKey).matches());
     }
 
+    /** Always required: institution wallets are created on approval even when blockchain is disabled. */
+    @AssertTrue(message = "app.blockchain.wallet-encryption-key (WALLET_ENCRYPTION_KEY) must be a Base64-encoded 32-byte key")
+    public boolean isWalletEncryptionKeyValid() {
+        return WalletKeyCipher.isValidKey(walletEncryptionKey);
+    }
+
     /** Never print secrets, even by accident in a log or debugger. */
     @Override
     public String toString() {
         return "BlockchainProperties[enabled=" + enabled
-                + ", rpcUrl=" + (rpcUrl == null || rpcUrl.isBlank() ? "<empty>" : "<hidden>")
+                + ", rpcUrl=" + hidden(rpcUrl)
+
                 + ", chainId=" + chainId
                 + ", contractAddress=" + contractAddress
                 + ", deploymentBlock=" + deploymentBlock
-                + ", adminPrivateKey=" + (adminPrivateKey == null || adminPrivateKey.isBlank() ? "<empty>" : "<hidden>")
+                + ", adminPrivateKey=" + hidden(adminPrivateKey)
+                + ", walletEncryptionKey=" + hidden(walletEncryptionKey)
                 + ", confirmations=" + confirmations
                 + ", receiptTimeout=" + receiptTimeout
                 + ", receiptPollInterval=" + receiptPollInterval
                 + ", maxFeePerGasGwei=" + maxFeePerGasGwei + "]";
+    }
+
+    private static String hidden(String secret) {
+        return (secret == null || secret.isBlank()) ? "<empty>" : "<hidden>";
     }
 }

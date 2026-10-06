@@ -88,6 +88,7 @@ app:
     contract-address: ${CREDENTIAL_REGISTRY_ADDRESS:0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0}
     deployment-block: ${CREDENTIAL_REGISTRY_DEPLOY_BLOCK:11846277}
     admin-private-key: ${BLOCKCHAIN_ADMIN_PRIVATE_KEY:} # secret: platform admin wallet
+    wallet-encryption-key: ${WALLET_ENCRYPTION_KEY:}   # secret: AES-256 master key for institution wallets
     confirmations: 2                                   # blocks to wait before trusting a tx
     receipt-timeout: 3m
     receipt-poll-interval: 4s

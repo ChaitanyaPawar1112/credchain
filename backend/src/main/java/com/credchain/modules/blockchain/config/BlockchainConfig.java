@@ -1,5 +1,6 @@
 package com.credchain.modules.blockchain.config;
 
+import com.credchain.modules.blockchain.infrastructure.WalletKeyCipher;
 import okhttp3.OkHttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -29,9 +30,15 @@ public class BlockchainConfig {
 
     /** Platform admin wallet: grants ISSUER_ROLE and funds institution wallets. */
     @Bean
-    @ConditionalOnProperty(prefix = "app.blockchain", name = "enabled", havingValue = "true")
 
+    @ConditionalOnProperty(prefix = "app.blockchain", name = "enabled", havingValue = "true")
     public Credentials platformAdminCredentials(BlockchainProperties properties) {
         return Credentials.create(properties.adminPrivateKey());
+    }
+
+    /** Encrypts institution wallet keys at rest. Always available (wallets are created on approval). */
+    @Bean
+    public WalletKeyCipher walletKeyCipher(BlockchainProperties properties) {
+        return new WalletKeyCipher(properties.walletEncryptionKey());
     }
 }
