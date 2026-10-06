@@ -18,6 +18,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
 
     long countByBatchId(UUID batchId);
 
+    boolean existsByBatchIdAndStudentId(UUID batchId, UUID studentId);
+
     Optional<Certificate> findByIdAndInstitutionId(UUID id, UUID institutionId);
 
     Optional<Certificate> findByCertHash(String certHash);
@@ -28,8 +30,8 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
 
     /** Next value for human-readable certificate numbers. */
     @Query(value = "SELECT nextval('certificate_number_seq')", nativeQuery = true)
-    long nextCertificateSequence();
 
+    long nextCertificateSequence();
 
     /** Certificates waiting for an on-chain revoke; locked rows are skipped by other instances. */
     @Query(value = """
