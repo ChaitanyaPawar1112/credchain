@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
@@ -62,6 +63,7 @@ public class TransactionSender {
     // ---------- transactions ----------
 
     /** Sends and waits until the transaction is final. */
+
     public TransactionReceipt sendAndConfirm(Credentials from, String to, BigInteger valueWei, String data, String label) {
         String txHash = send(from, to, valueWei, data, label);
         return waitForConfirmation(txHash, label);
@@ -94,12 +96,17 @@ public class TransactionSender {
             log.info("{}: sent tx {} (from {}, nonce {}, gas limit {}, max fee {} gwei)",
                     label, txHash, sender, nonce, gasLimit, gwei(fees.maxFeePerGas()));
             return txHash;
+
         } finally {
             lock.unlock();
         }
     }
 
-    /** Waits for a successful receipt plus the configured confirmations, or fails after receipt-timeout. */
+    /**
+     * Waits for a successful receipt plus the configured confirmations, or fails after receipt-timeout.
+     * @throws TransactionRevertedException if the contract rejected the transaction
+     * @throws BlockchainException          if it is not final in time (it may still confirm later)
+     */
     public TransactionReceipt waitForConfirmation(String txHash, String label) {
         Instant deadline = Instant.now().plus(properties.receiptTimeout());
 
@@ -112,7 +119,7 @@ public class TransactionSender {
             }
         }
         if (!receipt.isStatusOK()) {
-            throw new BlockchainException(label + " reverted on-chain (tx " + txHash + ")", txHash);
+            throw new TransactionRevertedException(label + " reverted on-chain (tx " + txHash + ")", txHash);
         }
 
         BigInteger minedIn = receipt.getBlockNumber();
@@ -122,6 +129,7 @@ public class TransactionSender {
             if (latest.subtract(minedIn).add(BigInteger.ONE).compareTo(needed) >= 0) {
                 break;
             }
+
             ensureBefore(deadline, label + " did not reach " + needed + " confirmations in time", txHash);
             pause(txHash);
         }
@@ -154,6 +162,7 @@ public class TransactionSender {
         EthEstimateGas estimate = rpcRaw(web3j.ethEstimateGas(
                 Transaction.createFunctionCallTransaction(from, null, null, null, to, value, data)), label);
         if (estimate.hasError()) {
+
             String revertData = estimate.getError().getData();
             String selector = (revertData != null && revertData.length() >= 10) ? " [error " + revertData.substring(0, 10) + "]" : "";
             throw new BlockchainException(label + " would fail: " + estimate.getError().getMessage() + selector);
@@ -186,6 +195,7 @@ public class TransactionSender {
 
     private <T extends Response<?>> T rpc(Request<?, T> request, String label) {
         T response = rpcRaw(request, label);
+
         if (response.hasError()) {
             throw new BlockchainException(label + ": RPC error: " + response.getError().getMessage());
         }

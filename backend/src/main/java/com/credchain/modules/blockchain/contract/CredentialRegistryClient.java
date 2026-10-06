@@ -8,11 +8,15 @@ import org.springframework.stereotype.Component;
 import org.web3j.abi.datatypes.Type;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.utils.Numeric;
 
 import java.math.BigInteger;
 import java.util.List;
 
-/** High-level CredentialRegistry operations. Admin actions are signed by the platform admin wallet. */
+/**
+ * High-level CredentialRegistry operations.
+ * Admin actions are signed by the platform admin wallet; issuing is signed by the institution's own wallet.
+ */
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.blockchain", name = "enabled", havingValue = "true")
@@ -26,15 +30,24 @@ public class CredentialRegistryClient {
         return properties.contractAddress();
     }
 
+
     public String platformAdminAddress() {
         return platformAdminCredentials.getAddress();
     }
+
+    // ---------- reads ----------
 
     @SuppressWarnings("rawtypes")
     public boolean isIssuer(String account) {
         List<Type> result = sender.call(contractAddress(), CredentialRegistryAbi.isIssuer(account));
         return (Boolean) result.get(0).getValue();
     }
+
+    public BigInteger balanceOf(String address) {
+        return sender.balanceOf(address);
+    }
+
+    // ---------- admin (platform wallet) ----------
 
     public TransactionReceipt addIssuer(String issuer) {
         return sender.sendAndConfirm(platformAdminCredentials, contractAddress(), BigInteger.ZERO,
@@ -51,7 +64,19 @@ public class CredentialRegistryClient {
         return sender.sendAndConfirm(platformAdminCredentials, to, amountWei, null, "fund(" + to + ")");
     }
 
-    public BigInteger balanceOf(String address) {
-        return sender.balanceOf(address);
+
+    // ---------- issuing (institution wallet) ----------
+
+    /** Simulates, signs with the institution's key and broadcasts issueBatch. Returns the tx hash without waiting. */
+    public String submitIssueBatch(Credentials issuer, String merkleRootHex, int count, long expiresAtEpochSeconds) {
+        byte[] root = Numeric.hexStringToByteArray(merkleRootHex);
+        return sender.send(issuer, contractAddress(), BigInteger.ZERO,
+                CredentialRegistryAbi.encode(CredentialRegistryAbi.issueBatch(root, count, expiresAtEpochSeconds)),
+                "issueBatch(" + merkleRootHex + ")");
+    }
+
+    /** Waits until a sent transaction is final (successful receipt + confirmations). */
+    public TransactionReceipt awaitReceipt(String txHash, String label) {
+        return sender.waitForConfirmation(txHash, label);
     }
 }
