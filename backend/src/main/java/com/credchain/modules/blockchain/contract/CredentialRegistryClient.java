@@ -15,21 +15,27 @@ import java.util.List;
 
 /**
  * High-level CredentialRegistry operations.
- * Admin actions are signed by the platform admin wallet; issuing is signed by the institution's own wallet.
+ * Admin actions are signed by the platform admin wallet; issuing and revoking by the institution's own wallet.
  */
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "app.blockchain", name = "enabled", havingValue = "true")
 public class CredentialRegistryClient {
 
+    /** CredentialRegistry.Status values returned by verify / verifyInBatch. */
+    public static final int STATUS_NOT_FOUND = 0;
+    public static final int STATUS_VALID = 1;
+    public static final int STATUS_REVOKED = 2;
+    public static final int STATUS_EXPIRED = 3;
+
     private final TransactionSender sender;
     private final BlockchainProperties properties;
+
     private final Credentials platformAdminCredentials;
 
     public String contractAddress() {
         return properties.contractAddress();
     }
-
 
     public String platformAdminAddress() {
         return platformAdminCredentials.getAddress();
@@ -47,9 +53,17 @@ public class CredentialRegistryClient {
         return sender.balanceOf(address);
     }
 
+    /** On-chain status of a certificate inside a batch (see STATUS_* constants). Free view call. */
+    @SuppressWarnings("rawtypes")
+    public int verifyInBatch(byte[] merkleRoot, byte[] certHash, List<byte[]> proof) {
+        List<Type> result = sender.call(contractAddress(), CredentialRegistryAbi.verifyInBatch(merkleRoot, certHash, proof));
+        return ((BigInteger) result.get(0).getValue()).intValue();
+    }
+
     // ---------- admin (platform wallet) ----------
 
     public TransactionReceipt addIssuer(String issuer) {
+
         return sender.sendAndConfirm(platformAdminCredentials, contractAddress(), BigInteger.ZERO,
                 CredentialRegistryAbi.encode(CredentialRegistryAbi.addIssuer(issuer)), "addIssuer(" + issuer + ")");
     }
@@ -64,8 +78,7 @@ public class CredentialRegistryClient {
         return sender.sendAndConfirm(platformAdminCredentials, to, amountWei, null, "fund(" + to + ")");
     }
 
-
-    // ---------- issuing (institution wallet) ----------
+    // ---------- issuing and revoking (institution wallet) ----------
 
     /** Simulates, signs with the institution's key and broadcasts issueBatch. Returns the tx hash without waiting. */
     public String submitIssueBatch(Credentials issuer, String merkleRootHex, int count, long expiresAtEpochSeconds) {
@@ -78,5 +91,14 @@ public class CredentialRegistryClient {
     /** Waits until a sent transaction is final (successful receipt + confirmations). */
     public TransactionReceipt awaitReceipt(String txHash, String label) {
         return sender.waitForConfirmation(txHash, label);
+    }
+
+    /** Revokes one certificate inside an anchored batch, signed by the institution that issued it. */
+    public TransactionReceipt revokeBatchEntry(Credentials issuer, byte[] merkleRoot, byte[] certHash,
+                                               List<byte[]> proof, int reasonCode) {
+
+        return sender.sendAndConfirm(issuer, contractAddress(), BigInteger.ZERO,
+                CredentialRegistryAbi.encode(CredentialRegistryAbi.revokeBatchEntry(merkleRoot, certHash, proof, reasonCode)),
+                "revokeBatchEntry(" + Numeric.toHexString(certHash) + ")");
     }
 }
