@@ -93,3 +93,11 @@ app:
     receipt-timeout: 3m
     receipt-poll-interval: 4s
     max-fee-per-gas-gwei: 50                           # refuse to send if gas is more expensive
+
+  # ---------- Issuer wallet sync worker (Phase 4) ----------
+  wallet-sync:
+    interval-ms: 15000           # how often the worker looks for wallets to activate/deactivate
+    initial-delay-ms: 10000      # wait after startup before the first run
+    batch-size: 5                # max wallets handled per run
+    funding-amount-eth: 0.003    # sent from the admin wallet to each new institution wallet
+    min-balance-eth: 0.001       # fund only if the institution wallet has less than this
