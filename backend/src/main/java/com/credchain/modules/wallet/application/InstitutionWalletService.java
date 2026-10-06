@@ -31,7 +31,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class InstitutionWalletService {
 
-
     private static final int PRIVATE_KEY_BYTES = 32;
 
     private final InstitutionWalletRepository walletRepository;
@@ -46,6 +45,15 @@ public class InstitutionWalletService {
             case SUSPENDED -> requestDeactivation(event.institutionId());
             default -> { /* PENDING / REJECTED: no wallet needed */ }
         }
+    }
+
+    /**
+     * Makes sure an approved institution has a wallet queued for activation.
+     * Used for institutions approved before wallets existed. Safe to call repeatedly.
+     */
+    @Transactional
+    public void ensureWallet(UUID institutionId) {
+        requestActivation(institutionId);
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +71,6 @@ public class InstitutionWalletService {
         try {
             Credentials credentials = Credentials.create(ECKeyPair.create(privateKey));
             if (!credentials.getAddress().equalsIgnoreCase(wallet.getAddress())) {
-
                 throw new IllegalStateException("Decrypted key does not match wallet " + wallet.getAddress());
             }
             return credentials;
@@ -96,7 +103,6 @@ public class InstitutionWalletService {
 
     private InstitutionWallet generateWallet(UUID institutionId, Instant now) {
         ECKeyPair keyPair;
-
         try {
             keyPair = Keys.createEcKeyPair();   // cryptographically secure random key
         } catch (GeneralSecurityException e) {
