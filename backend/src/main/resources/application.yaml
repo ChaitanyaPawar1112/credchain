@@ -79,3 +79,16 @@ app:
       email: ${SUPER_ADMIN_EMAIL:}
       password: ${SUPER_ADMIN_PASSWORD:}
       full-name: ${SUPER_ADMIN_FULL_NAME:System Administrator}
+
+  # ---------- Blockchain (Phase 4) ----------
+  blockchain:
+    enabled: ${BLOCKCHAIN_ENABLED:false}               # off unless infra/.env turns it on
+    rpc-url: ${BLOCKCHAIN_RPC_URL:}                    # secret: Alchemy URL contains an API key
+    chain-id: ${BLOCKCHAIN_CHAIN_ID:11155111}          # Sepolia
+    contract-address: ${CREDENTIAL_REGISTRY_ADDRESS:0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0}
+    deployment-block: ${CREDENTIAL_REGISTRY_DEPLOY_BLOCK:11846277}
+    admin-private-key: ${BLOCKCHAIN_ADMIN_PRIVATE_KEY:} # secret: platform admin wallet
+    confirmations: 2                                   # blocks to wait before trusting a tx
+    receipt-timeout: 3m
+    receipt-poll-interval: 4s
+    max-fee-per-gas-gwei: 50                           # refuse to send if gas is more expensive
