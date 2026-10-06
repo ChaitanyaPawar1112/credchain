@@ -2,7 +2,7 @@
 
 spring:
   jpa:
-    show-sql: true               # print every SQL query in the console
+    show-sql: false              # off: SQL is logged by the org.hibernate.SQL logger below when needed
 
   # Faster restarts while coding
   devtools:
@@ -12,9 +12,14 @@ spring:
 logging:
   level:
     root: INFO
-    com.credchain: DEBUG                         # detailed logs for OUR code
-    org.hibernate.SQL: DEBUG                     # SQL queries
-    org.hibernate.orm.jdbc.bind: TRACE           # values passed into queries
+    com.credchain: DEBUG                         # detailed logs for OUR code (wallets, workers, transactions)
     org.flywaydb: INFO                           # migration logs
+
+    # SQL logging is OFF by default because background workers poll every few seconds.
+    # To debug a query, temporarily change these two lines:
+    #   org.hibernate.SQL: DEBUG                 -> prints each SQL statement once
+    #   org.hibernate.orm.jdbc.bind: TRACE       -> prints the values passed into it
+    org.hibernate.SQL: INFO
+    org.hibernate.orm.jdbc.bind: INFO
   pattern:
     console: "%d{HH:mm:ss.SSS} %highlight(%-5level) [%thread] %cyan(%logger{36}) - %msg%n"
