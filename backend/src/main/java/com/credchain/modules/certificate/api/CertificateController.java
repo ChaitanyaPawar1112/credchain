@@ -5,12 +5,14 @@ import com.credchain.modules.certificate.api.dto.CertificateResponse;
 import com.credchain.modules.certificate.api.dto.RevokeCertificateRequest;
 import com.credchain.modules.certificate.application.CertificatePdfService;
 import com.credchain.modules.certificate.application.CertificateRevocationService;
+import com.credchain.modules.certificate.domain.CertificateStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -44,12 +46,15 @@ public class CertificateController {
     private final CertificateRevocationService revocationService;
     private final CertificatePdfService pdfService;
 
-    @Operation(summary = "My institution's certificates (newest first)")
+    @Operation(summary = "My institution's certificates (newest first). "
+            + "Optional filters: status, and search by student name, enrollment number or certificate number")
     @GetMapping
     public PageResponse<CertificateResponse> list(@AuthenticationPrincipal Jwt jwt,
+                                                  @RequestParam(required = false) CertificateStatus status,
+                                                  @RequestParam(required = false) @Size(max = 100) String search,
                                                   @RequestParam(defaultValue = "0") @Min(0) int page,
                                                   @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return revocationService.list(userId(jwt), page, size);
+        return revocationService.list(userId(jwt), status, search, page, size);
     }
 
     @Operation(summary = "One certificate")

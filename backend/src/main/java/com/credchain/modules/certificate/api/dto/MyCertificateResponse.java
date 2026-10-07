@@ -10,11 +10,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record CertificateResponse(
+/** What a student sees about one of their own certificates. */
+public record MyCertificateResponse(
         UUID id,
-        UUID batchId,
-        UUID studentId,
         String certificateNumber,
+        String institutionName,
         CertificateType type,
         String title,
         String program,
@@ -27,12 +27,13 @@ public record CertificateResponse(
         CertificateStatus status,
         RevocationReason revocationReason,
         Instant revokedAt,
-        boolean pdfAvailable
+        boolean pdfAvailable,
+        String verificationUrl
 ) {
-    public static CertificateResponse from(Certificate c) {
-        return new CertificateResponse(c.getId(), c.getBatchId(), c.getStudentId(), c.getCertificateNumber(),
+    public static MyCertificateResponse of(Certificate c, String institutionName, String verificationUrl) {
+        return new MyCertificateResponse(c.getId(), c.getCertificateNumber(), institutionName,
                 c.getType(), c.getTitle(), c.getProgram(), c.getGrade(), c.getCgpa(), c.getAwardedOn(),
                 c.getStudentName(), c.getEnrollmentNo(), c.getCertHash(), c.getStatus(),
-                c.getRevocationReason(), c.getRevokedAt(), c.hasPdf());
+                c.getRevocationReason(), c.getRevokedAt(), c.hasPdf(), verificationUrl);
     }
 }

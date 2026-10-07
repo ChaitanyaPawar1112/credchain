@@ -6,6 +6,7 @@ import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.certificate.api.dto.CertificateResponse;
 import com.credchain.modules.certificate.api.dto.RevokeCertificateRequest;
 import com.credchain.modules.certificate.domain.Certificate;
+import com.credchain.modules.certificate.domain.CertificateStatus;
 import com.credchain.modules.certificate.infrastructure.CertificateRepository;
 import com.credchain.modules.institution.application.InstitutionAccessGuard;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.util.Locale;
 import java.util.UUID;
 
 /** Institution admin: view issued certificates and request revocation (executed on-chain by the worker). */
@@ -29,11 +31,14 @@ public class CertificateRevocationService {
     private final Clock clock;
 
     @Transactional(readOnly = true)
-    public PageResponse<CertificateResponse> list(UUID adminUserId, int page, int size) {
-
+    public PageResponse<CertificateResponse> list(UUID adminUserId, CertificateStatus status, String search,
+                                                  int page, int size) {
         UUID institutionId = accessGuard.requireActiveInstitution(adminUserId).getId();
+        String pattern = (search == null || search.isBlank())
+                ? "%"
+                : "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return PageResponse.from(certificateRepository.findAllByInstitutionId(institutionId, pageRequest)
+        return PageResponse.from(certificateRepository.searchInInstitution(institutionId, status, pattern, pageRequest)
                 .map(CertificateResponse::from));
     }
 
