@@ -3,6 +3,7 @@ package com.credchain.modules.certificate.api;
 import com.credchain.common.api.PageResponse;
 import com.credchain.modules.certificate.api.dto.CertificateResponse;
 import com.credchain.modules.certificate.api.dto.RevokeCertificateRequest;
+import com.credchain.modules.certificate.application.CertificatePdfService;
 import com.credchain.modules.certificate.application.CertificateRevocationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -11,7 +12,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -37,6 +42,7 @@ import java.util.UUID;
 public class CertificateController {
 
     private final CertificateRevocationService revocationService;
+    private final CertificatePdfService pdfService;
 
     @Operation(summary = "My institution's certificates (newest first)")
     @GetMapping
@@ -50,6 +56,17 @@ public class CertificateController {
     @GetMapping("/{certificateId}")
     public CertificateResponse get(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID certificateId) {
         return revocationService.get(userId(jwt), certificateId);
+    }
+
+    @Operation(summary = "Download the certificate PDF (409 until it has been created after anchoring)")
+    @GetMapping("/{certificateId}/pdf")
+    public ResponseEntity<byte[]> downloadPdf(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID certificateId) {
+        CertificatePdfService.PdfFile file = pdfService.downloadForInstitution(userId(jwt), certificateId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(file.fileName()).build().toString())
+                .body(file.content());
     }
 
     @Operation(summary = "Request revocation of an ISSUED certificate (executed on-chain in the background)")

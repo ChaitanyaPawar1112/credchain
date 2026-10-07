@@ -117,6 +117,13 @@ public class Certificate extends BaseEntity {
     @Column(name = "created_by", nullable = false, updatable = false)
     private UUID createdBy;
 
+    /** Where the PDF is stored (object storage key); null until the PDF worker has made it. */
+    @Column(name = "pdf_key", length = 300)
+    private String pdfKey;
+
+    @Column(name = "pdf_generated_at")
+    private Instant pdfGeneratedAt;
+
     // ---------- Factory ----------
 
     /** Content fields that go into the hash. */
@@ -183,6 +190,27 @@ public class Certificate extends BaseEntity {
         this.attempts = 0;
         this.lastError = null;
         this.nextAttemptAt = null;
+    }
+
+    /** True once the certificate is on-chain (ISSUED, or revoked later): only then can it have a PDF. */
+    public boolean isOnChain() {
+        return status == CertificateStatus.ISSUED
+                || status == CertificateStatus.REVOCATION_PENDING
+                || status == CertificateStatus.REVOKED;
+    }
+
+    public boolean hasPdf() {
+        return pdfKey != null;
+    }
+
+    /** The PDF was generated and stored. */
+    public void attachPdf(String pdfKey, Instant now) {
+        if (!isOnChain()) {
+            throw new BusinessException(ErrorCode.INVALID_STATE_TRANSITION,
+                    "Certificate is " + status + "; a PDF is only made once it is on-chain");
+        }
+        this.pdfKey = Objects.requireNonNull(pdfKey, "pdfKey");
+        this.pdfGeneratedAt = now;
     }
 
     /** Exponential backoff for the revocation worker. */

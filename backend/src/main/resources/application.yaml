@@ -112,6 +112,12 @@ app:
     bucket: ${S3_BUCKET:credchain-certificates}       # created automatically on startup
     path-style-access: ${S3_PATH_STYLE_ACCESS:true}   # true for RustFS/MinIO, false for AWS
 
+  # ---------- Certificate PDF worker (Phase 4.9d) ----------
+  certificate-pdf:
+    interval-ms: 15000           # how often the worker looks for certificates without a PDF
+    initial-delay-ms: 20000      # wait after startup before the first run
+    batch-size: 10               # max PDFs created per run
+
   # ---------- Public verification page (QR codes point here) ----------
   verification:
     base-url: ${VERIFICATION_BASE_URL:http://localhost:5173/verify}
