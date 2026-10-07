@@ -4,6 +4,7 @@ import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.blockchain.config.BlockchainProperties;
 import com.credchain.modules.certificate.config.VerificationProperties;
+import com.credchain.modules.certificate.crypto.FileHash;
 import com.credchain.modules.certificate.document.CertificateDocument;
 import com.credchain.modules.certificate.document.CertificatePdfRenderer;
 import com.credchain.modules.certificate.domain.Certificate;
@@ -97,7 +98,7 @@ public class CertificatePdfService {
 
         String key = "certificates/" + certificate.getInstitutionId() + "/" + certificate.getId() + ".pdf";
         storage.put(key, pdf, CONTENT_TYPE);
-        certificate.attachPdf(key, clock.instant());   // saved when the transaction commits
+        certificate.attachPdf(key, FileHash.sha256(pdf), clock.instant());   // saved when the transaction commits
         log.info("PDF created for certificate {} ({} bytes)", certificate.getCertificateNumber(), pdf.length);
     }
 
