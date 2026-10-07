@@ -121,3 +121,10 @@ app:
   # ---------- Public verification page (QR codes point here) ----------
   verification:
     base-url: ${VERIFICATION_BASE_URL:http://localhost:5173/verify}
+
+  # ---------- Public verification limits per client IP (Phase 5.3) ----------
+  public-rate-limit:
+    enabled: true
+    lookups-per-minute: 30       # checks by hash / QR link
+    uploads-per-minute: 10       # PDF uploads
+    trust-forwarded-for: ${TRUST_FORWARDED_FOR:false}   # true only behind our own nginx / load balancer
