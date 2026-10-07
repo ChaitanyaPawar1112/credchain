@@ -29,6 +29,9 @@ app:
     wallet-encryption-key: 3aDSMzeQgUkgELHe+e7iCke/z5O/c/7OxNJwq+RkZYA=
   storage:
     enabled: false                  # tests never need the Docker storage container
+  public-rate-limit:
+    lookups-per-minute: 10000       # all API tests share one client IP; the limit has its own test
+    uploads-per-minute: 10000
 
 logging:
   level:
