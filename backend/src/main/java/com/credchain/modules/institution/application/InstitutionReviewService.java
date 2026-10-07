@@ -9,11 +9,13 @@ import com.credchain.modules.institution.api.dto.InstitutionApprovalResponse;
 import com.credchain.modules.institution.api.dto.InstitutionResponse;
 import com.credchain.modules.institution.domain.Institution;
 import com.credchain.modules.institution.domain.InstitutionStatus;
+import com.credchain.modules.institution.domain.InstitutionStatusChangedEvent;
 import com.credchain.modules.institution.infrastructure.InstitutionRepository;
 import com.credchain.modules.user.domain.User;
 import com.credchain.modules.user.infrastructure.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,7 +32,6 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-
 public class InstitutionReviewService {
 
     private static final int TEMP_PASSWORD_LENGTH = 16;
@@ -39,6 +40,7 @@ public class InstitutionReviewService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     // ---------- Queries ----------
@@ -59,11 +61,10 @@ public class InstitutionReviewService {
 
     // ---------- Commands ----------
 
-    /** Approve + create the institution admin account, atomically. */
+    /** Approve + create the institution admin account (+ issuer wallet via event), atomically. */
     @Transactional
     public InstitutionApprovalResponse approve(UUID institutionId, UUID reviewerId) {
         Institution institution = load(institutionId);
-
         Instant now = clock.instant();
 
         institution.approve(reviewerId, now);   // throws 409 if not PENDING
@@ -87,6 +88,8 @@ public class InstitutionReviewService {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
+        events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.APPROVED));
+
         log.info("Institution {} approved by {}; admin account {} created",
                 institution.getCode(), reviewerId, admin.getId());   // never log the password
 
@@ -96,7 +99,6 @@ public class InstitutionReviewService {
                         admin.getId(),
                         admin.getEmail(),
                         temporaryPassword,
-
                         "Share this temporary password securely. It is shown only once and must be changed at first login."));
     }
 
@@ -104,11 +106,12 @@ public class InstitutionReviewService {
     public InstitutionResponse reject(UUID institutionId, UUID reviewerId, String reason) {
         Institution institution = load(institutionId);
         institution.reject(reviewerId, reason, clock.instant());   // throws 409 if not PENDING
+        events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.REJECTED));
         log.info("Institution {} rejected by {}", institution.getCode(), reviewerId);
         return InstitutionResponse.from(institution);
     }
 
-    /** Suspend and immediately log out every admin of that institution. */
+    /** Suspend, immediately log out every admin of that institution, and revoke on-chain issuing (via event). */
     @Transactional
     public InstitutionResponse suspend(UUID institutionId, UUID reviewerId) {
         Institution institution = load(institutionId);
@@ -116,6 +119,8 @@ public class InstitutionReviewService {
 
         userRepository.findAllByInstitutionId(institutionId)
                 .forEach(user -> refreshTokenService.revokeAll(user.getId()));
+
+        events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.SUSPENDED));
 
         log.warn("Institution {} suspended by {}", institution.getCode(), reviewerId);
         return InstitutionResponse.from(institution);
@@ -125,10 +130,10 @@ public class InstitutionReviewService {
     public InstitutionResponse reinstate(UUID institutionId, UUID reviewerId) {
         Institution institution = load(institutionId);
         institution.reinstate(reviewerId, clock.instant());
+        events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.APPROVED));
         log.info("Institution {} reinstated by {}", institution.getCode(), reviewerId);
         return InstitutionResponse.from(institution);
     }
-
 
     private Institution load(UUID id) {
         return institutionRepository.findById(id)

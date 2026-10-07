@@ -32,7 +32,6 @@ public enum ErrorCode {
     EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT, "An account with this email already exists"),
     CURRENT_PASSWORD_INCORRECT(HttpStatus.BAD_REQUEST, "Current password is incorrect"),
 
-
     // ---------- Institution ----------
     INSTITUTION_ALREADY_EXISTS(HttpStatus.CONFLICT, "An institution with this code, registration number or wallet already exists"),
     INSTITUTION_NOT_APPROVED(HttpStatus.FORBIDDEN, "Institution is not approved"),
@@ -40,7 +39,15 @@ public enum ErrorCode {
     // ---------- Student ----------
     STUDENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "A student with this enrollment number already exists"),
     STUDENT_ALREADY_LINKED(HttpStatus.CONFLICT, "This student record is already linked to an account"),
-    INVALID_CLAIM_CODE(HttpStatus.BAD_REQUEST, "Claim code is invalid or has expired");
+    INVALID_CLAIM_CODE(HttpStatus.BAD_REQUEST, "Claim code is invalid or has expired"),
+
+    // ---------- Certificates (Phase 4) ----------
+    CERTIFICATE_ALREADY_IN_BATCH(HttpStatus.CONFLICT, "This student already has a certificate in this batch"),
+    ISSUER_WALLET_NOT_READY(HttpStatus.CONFLICT,
+            "Your institution's blockchain wallet is not active yet. Please try again in a minute"),
+    CERTIFICATE_PDF_NOT_READY(HttpStatus.CONFLICT,
+            "The certificate PDF is not ready yet. It is created shortly after the certificate is recorded on the blockchain"),
+    STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "File storage is not available. Please try again later");
 
     private final HttpStatus status;
     private final String defaultMessage;

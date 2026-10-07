@@ -1,0 +1,28 @@
+name: credchain
+
+services:
+  storage:
+    # S3-compatible object storage (RustFS). Pinned version for repeatable setups.
+    image: rustfs/rustfs:1.0.1
+    container_name: credchain-storage
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+    ports:
+      - "9000:9000"   # S3 API (used by the backend)
+      - "9001:9001"   # web console (for you, in the browser)
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  storage-data:

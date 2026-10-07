@@ -79,3 +79,45 @@ app:
       email: ${SUPER_ADMIN_EMAIL:}
       password: ${SUPER_ADMIN_PASSWORD:}
       full-name: ${SUPER_ADMIN_FULL_NAME:System Administrator}
+
+  # ---------- Blockchain (Phase 4) ----------
+  blockchain:
+    enabled: ${BLOCKCHAIN_ENABLED:false}               # off unless infra/.env turns it on
+    rpc-url: ${BLOCKCHAIN_RPC_URL:}                    # secret: Alchemy URL contains an API key
+    chain-id: ${BLOCKCHAIN_CHAIN_ID:11155111}          # Sepolia
+    contract-address: ${CREDENTIAL_REGISTRY_ADDRESS:0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0}
+    deployment-block: ${CREDENTIAL_REGISTRY_DEPLOY_BLOCK:11846277}
+    admin-private-key: ${BLOCKCHAIN_ADMIN_PRIVATE_KEY:} # secret: platform admin wallet
+    wallet-encryption-key: ${WALLET_ENCRYPTION_KEY:}   # secret: AES-256 master key for institution wallets
+    confirmations: 2                                   # blocks to wait before trusting a tx
+    receipt-timeout: 3m
+    receipt-poll-interval: 4s
+    max-fee-per-gas-gwei: 50                           # refuse to send if gas is more expensive
+
+  # ---------- Issuer wallet sync worker (Phase 4) ----------
+  wallet-sync:
+    interval-ms: 15000           # how often the worker looks for wallets to activate/deactivate
+    initial-delay-ms: 10000      # wait after startup before the first run
+    batch-size: 5                # max wallets handled per run
+    funding-amount-eth: 0.003    # sent from the admin wallet to each new institution wallet
+    min-balance-eth: 0.001       # fund only if the institution wallet has less than this
+
+  # ---------- Object storage for certificate PDFs (Phase 4.9) ----------
+  storage:
+    enabled: ${STORAGE_ENABLED:true}                 # false = run without the Docker storage container
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}   # RustFS in Docker; empty = real AWS S3
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:}                     # secret
+    secret-key: ${S3_SECRET_KEY:}                     # secret
+    bucket: ${S3_BUCKET:credchain-certificates}       # created automatically on startup
+    path-style-access: ${S3_PATH_STYLE_ACCESS:true}   # true for RustFS/MinIO, false for AWS
+
+  # ---------- Certificate PDF worker (Phase 4.9d) ----------
+  certificate-pdf:
+    interval-ms: 15000           # how often the worker looks for certificates without a PDF
+    initial-delay-ms: 20000      # wait after startup before the first run
+    batch-size: 10               # max PDFs created per run
+
+  # ---------- Public verification page (QR codes point here) ----------
+  verification:
+    base-url: ${VERIFICATION_BASE_URL:http://localhost:5173/verify}

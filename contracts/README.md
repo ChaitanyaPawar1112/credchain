@@ -13,7 +13,8 @@ No personal data is ever written on-chain (privacy by design, DPDP Act 2023).
 | Ethereum Sepolia (testnet) | 11155111 | [`0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0`](https://sepolia.etherscan.io/address/0x1EA82E244e3b38Fc294075Ab03D30F5e3E2947b0#code) | Verified (exact match) on Etherscan, Blockscout and Sourcify |
 
 - Deployed in block `11846277` with Hardhat Ignition (record: `ignition/deployments/chain-11155111/`)
-- Admin (DEFAULT_ADMIN_ROLE): `0xdB254B2fE0fE4E6f6BE86fE9f6765daBc3c40038`
+- Admin (DEFAULT_ADMIN_ROLE): `0x09941292AF95DA3dedd9849B077eaC1B1142AB69`
+  (rotated on 6 Oct 2026 with `scripts/rotate-admin.ts`; the original deployer `0xdB25…0038` renounced all roles)
 - Live demo transactions: `demo/demo-result-chain-11155111.json`
 
 ## Contract design
@@ -29,6 +30,7 @@ No personal data is ever written on-chain (privacy by design, DPDP Act 2023).
 | Merkle leaves | `keccak256(bytes.concat(keccak256(abi.encode(certHash))))` – compatible with `@openzeppelin/merkle-tree` `StandardMerkleTree` |
 
 Status rules: never issued → `NOT_FOUND`; revoked always wins over expired; records are never deleted.
+
 
 ### Gas (measured)
 
@@ -53,6 +55,7 @@ contracts/
 ├── scripts/demo-local.ts                   # end-to-end demo on a local node
 ├── scripts/demo-sepolia.ts                 # end-to-end demo on a live network
 ├── scripts/export-backend-abi.ts           # ABI + addresses -> backend/src/main/resources/blockchain
+├── scripts/rotate-admin.ts                 # moves DEFAULT_ADMIN_ROLE to a new wallet
 ├── demo/                                   # public results of live demo runs
 └── hardhat.config.ts                       # solc 0.8.34, networks, Etherscan verification
 ```
@@ -60,6 +63,7 @@ contracts/
 ## Prerequisites
 
 - Node.js 22+ and npm
+
 - For Sepolia: a funded test wallet (MetaMask), an RPC URL (Alchemy) and an Etherscan API key
 
 ```powershell
@@ -91,7 +95,8 @@ npx hardhat run scripts/demo-local.ts --network localhost
 Secrets are kept **only** in Hardhat's encrypted keystore – never in files or Git.
 
 ```powershell
-npx hardhat keystore set SEPOLIA_RPC_URL       # Alchemy HTTPS endpoint for Ethereum Sepolia
+npx hardhat keystore set SEPOLIA_RPC_URL       # Alchemy HTTPS endpoint for Ethereum Sepolia (eth-sepolia...)
+
 npx hardhat keystore set SEPOLIA_PRIVATE_KEY   # MetaMask key, with 0x prefix
 npx hardhat keystore set ETHERSCAN_API_KEY     # etherscan.io API key token
 npx hardhat keystore list
@@ -118,6 +123,23 @@ Approves the wallet as issuer, issues a certificate (VALID), detects a tampered 
 issues and revokes another (REVOKED), and issues a Merkle batch of 3 (VALID ×3).
 Results are saved to `demo/demo-result-chain-<chainId>.json`.
 
+## Admin key rotation
+
+If the admin key is ever exposed, move the admin role to a fresh wallet without redeploying:
+
+1. Create a new wallet and set `NEW_ADMIN` at the top of `scripts/rotate-admin.ts`.
+2. Run it with the **current** admin key still in the keystore:
+
+```powershell
+   npx hardhat run scripts/rotate-admin.ts --network sepolia
+```
+It grants admin to the new wallet, verifies the grant, removes the old wallet's issuer role,
+renounces the old admin role and moves the remaining ETH. Completed steps are skipped on re-run.
+3. Replace `SEPOLIA_PRIVATE_KEY` in the keystore (and `BLOCKCHAIN_ADMIN_PRIVATE_KEY` in `infra/.env`) with the new key.
+
+Note: certificates already issued by a wallet can still be revoked by that same wallet (or by the admin),
+even after its issuer role is removed.
+
 ## Export for the backend (web3j)
 
 ```powershell
@@ -130,6 +152,7 @@ match what is on-chain. Run it again after every new deployment.
 
 ## Security notes
 
-- Recovery phrase: paper only. Private key, RPC URL and Etherscan key: keystore only.
+- Recovery phrase: paper only. Private key, RPC URL and Etherscan key: keystore (and the git-ignored `infra/.env`) only.
+- Never paste keys or RPC URLs into chats, screenshots or documents; if it happens, rotate them immediately.
 - The Sepolia wallet is for testing; a production launch would use a hardware wallet or multisig as admin.
 - Contract address, ABI, transaction hashes and demo results are public data.

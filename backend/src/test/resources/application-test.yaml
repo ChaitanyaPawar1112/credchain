@@ -21,6 +21,14 @@ app:
   bootstrap:
     super-admin:
       email: ""                     # tests create their own users
+  blockchain:
+    enabled: false                  # tests must never send real transactions
+    rpc-url: ""
+    admin-private-key: ""
+    # Test-only AES-256 key: safe to commit, never used outside tests
+    wallet-encryption-key: 3aDSMzeQgUkgELHe+e7iCke/z5O/c/7OxNJwq+RkZYA=
+  storage:
+    enabled: false                  # tests never need the Docker storage container
 
 logging:
   level:
