@@ -2,6 +2,7 @@ package com.credchain.modules.certificate.infrastructure;
 
 import com.credchain.modules.certificate.domain.Certificate;
 import com.credchain.modules.certificate.domain.CertificateStatus;
+import com.credchain.modules.certificate.domain.ChainCheckResult;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -79,4 +80,26 @@ public interface CertificateRepository extends JpaRepository<Certificate, UUID> 
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<Certificate> lockMissingPdf(@Param("limit") int limit);
+
+    /**
+     * On-chain certificates due for a reconciliation check: never checked, or last checked before :checkedBefore.
+     * Locked rows are skipped by other instances.
+     */
+    @Query(value = """
+            SELECT * FROM certificates
+            WHERE status IN ('ISSUED', 'REVOCATION_PENDING', 'REVOKED')
+              AND (chain_checked_at IS NULL OR chain_checked_at < :checkedBefore)
+            ORDER BY chain_checked_at NULLS FIRST
+            LIMIT :limit
+            FOR UPDATE SKIP LOCKED
+            """, nativeQuery = true)
+    List<Certificate> lockDueForChainCheck(@Param("checkedBefore") Instant checkedBefore, @Param("limit") int limit);
+
+    long countByStatusIn(Collection<CertificateStatus> statuses);
+
+    long countByStatusInAndChainCheckedAtIsNull(Collection<CertificateStatus> statuses);
+
+    long countByChainCheckResult(ChainCheckResult result);
+
+    Page<Certificate> findAllByChainCheckResult(ChainCheckResult result, Pageable pageable);
 }

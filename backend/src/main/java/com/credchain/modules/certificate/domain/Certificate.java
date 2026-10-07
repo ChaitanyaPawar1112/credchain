@@ -30,7 +30,6 @@ import java.util.UUID;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Certificate extends BaseEntity {
 
-
     private static final Duration FIRST_RETRY = Duration.ofSeconds(30);
     private static final Duration MAX_RETRY = Duration.ofMinutes(30);
     private static final int MAX_TEXT = 500;
@@ -62,7 +61,6 @@ public class Certificate extends BaseEntity {
 
     @Column(name = "cgpa", updatable = false, precision = 4, scale = 2)
     private BigDecimal cgpa;
-
 
     @Column(name = "awarded_on", nullable = false, updatable = false)
     private LocalDate awardedOn;
@@ -96,7 +94,6 @@ public class Certificate extends BaseEntity {
     private RevocationReason revocationReason;
 
     @Column(name = "revocation_note", length = MAX_TEXT)
-
     private String revocationNote;
 
     @Column(name = "revoked_at")
@@ -124,6 +121,17 @@ public class Certificate extends BaseEntity {
     @Column(name = "pdf_generated_at")
     private Instant pdfGeneratedAt;
 
+    /** Last time the reconciliation job compared this certificate with the blockchain. */
+    @Column(name = "chain_checked_at")
+    private Instant chainCheckedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "chain_check_result", length = 20)
+    private ChainCheckResult chainCheckResult;
+
+    @Column(name = "chain_check_note", length = MAX_TEXT)
+    private String chainCheckNote;
+
     // ---------- Factory ----------
 
     /** Content fields that go into the hash. */
@@ -136,7 +144,6 @@ public class Certificate extends BaseEntity {
                                           UUID createdBy) {
         Certificate c = new Certificate();
         c.institutionId = Objects.requireNonNull(institutionId, "institutionId");
-
         c.batchId = Objects.requireNonNull(batchId, "batchId");
         c.studentId = Objects.requireNonNull(studentId, "studentId");
         c.certificateNumber = Objects.requireNonNull(certificateNumber, "certificateNumber");
@@ -169,7 +176,6 @@ public class Certificate extends BaseEntity {
     public void markIssued() {
         requireStatus(CertificateStatus.PENDING);
         this.status = CertificateStatus.ISSUED;
-
     }
 
     public void requestRevocation(RevocationReason reason, String note, Instant now) {
@@ -213,6 +219,13 @@ public class Certificate extends BaseEntity {
         this.pdfGeneratedAt = now;
     }
 
+    /** Result of the reconciliation job comparing this certificate with the blockchain. */
+    public void recordChainCheck(ChainCheckResult result, String note, Instant now) {
+        this.chainCheckResult = Objects.requireNonNull(result, "result");
+        this.chainCheckNote = truncate(note);
+        this.chainCheckedAt = now;
+    }
+
     /** Exponential backoff for the revocation worker. */
     public void recordFailure(String error, Instant now) {
         attempts++;
@@ -223,7 +236,6 @@ public class Certificate extends BaseEntity {
     }
 
     // ---------- helpers ----------
-
 
     private void requireStatus(CertificateStatus expected) {
         if (status != expected) {
