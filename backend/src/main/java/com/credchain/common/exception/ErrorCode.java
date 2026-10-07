@@ -47,7 +47,10 @@ public enum ErrorCode {
             "Your institution's blockchain wallet is not active yet. Please try again in a minute"),
     CERTIFICATE_PDF_NOT_READY(HttpStatus.CONFLICT,
             "The certificate PDF is not ready yet. It is created shortly after the certificate is recorded on the blockchain"),
-    STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "File storage is not available. Please try again later");
+    STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "File storage is not available. Please try again later"),
+
+    // ---------- Public verification (Phase 5) ----------
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many verification requests. Please wait a minute and try again");
 
     private final HttpStatus status;
     private final String defaultMessage;
