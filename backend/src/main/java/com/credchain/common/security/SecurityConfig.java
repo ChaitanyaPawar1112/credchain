@@ -29,6 +29,7 @@ public class SecurityConfig {
             "/api/v1/auth/refresh",
             "/api/v1/auth/logout",
             "/api/v1/institutions/applications/**",   // NEW (Phase 2): apply + check status
+            "/api/v1/public/**",                      // Phase 5: certificate verification for anyone
             "/actuator/health/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
