@@ -126,6 +126,7 @@ public class PublicVerificationService {
             case REVOKED -> "This certificate was revoked by the issuing institution. Do not accept it.";
             case EXPIRED -> "This certificate was genuine but has expired. " + source;
             case NOT_FOUND -> "No certificate with this hash was issued on CredChain.";
+            case FAKE -> "This certificate is not genuine. Do not accept it.";   // only used by the PDF check
         };
     }
 

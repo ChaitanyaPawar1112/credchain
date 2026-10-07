@@ -13,5 +13,8 @@ public enum VerificationStatus {
     EXPIRED,
 
     /** No certificate with this hash was issued (wrong link, typo, or a forged certificate). */
-    NOT_FOUND
+    NOT_FOUND,
+
+    /** Upload check only: the PDF was not issued by CredChain, or was changed after it was issued. */
+    FAKE
 }

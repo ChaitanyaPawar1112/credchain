@@ -121,6 +121,10 @@ public class Certificate extends BaseEntity {
     @Column(name = "pdf_generated_at")
     private Instant pdfGeneratedAt;
 
+    /** SHA-256 of the stored PDF file, so an uploaded copy can be checked byte for byte (null before V8). */
+    @Column(name = "pdf_sha256", length = 64)
+    private String pdfSha256;
+
     /** Last time the reconciliation job compared this certificate with the blockchain. */
     @Column(name = "chain_checked_at")
     private Instant chainCheckedAt;
@@ -210,12 +214,13 @@ public class Certificate extends BaseEntity {
     }
 
     /** The PDF was generated and stored. */
-    public void attachPdf(String pdfKey, Instant now) {
+    public void attachPdf(String pdfKey, String pdfSha256, Instant now) {
         if (!isOnChain()) {
             throw new BusinessException(ErrorCode.INVALID_STATE_TRANSITION,
                     "Certificate is " + status + "; a PDF is only made once it is on-chain");
         }
         this.pdfKey = Objects.requireNonNull(pdfKey, "pdfKey");
+        this.pdfSha256 = Objects.requireNonNull(pdfSha256, "pdfSha256");
         this.pdfGeneratedAt = now;
     }
 
