@@ -101,3 +101,17 @@ app:
     batch-size: 5                # max wallets handled per run
     funding-amount-eth: 0.003    # sent from the admin wallet to each new institution wallet
     min-balance-eth: 0.001       # fund only if the institution wallet has less than this
+
+  # ---------- Object storage for certificate PDFs (Phase 4.9) ----------
+  storage:
+    enabled: ${STORAGE_ENABLED:true}                 # false = run without the Docker storage container
+    endpoint: ${S3_ENDPOINT:http://localhost:9000}   # RustFS in Docker; empty = real AWS S3
+    region: ${S3_REGION:us-east-1}
+    access-key: ${S3_ACCESS_KEY:}                     # secret
+    secret-key: ${S3_SECRET_KEY:}                     # secret
+    bucket: ${S3_BUCKET:credchain-certificates}       # created automatically on startup
+    path-style-access: ${S3_PATH_STYLE_ACCESS:true}   # true for RustFS/MinIO, false for AWS
+
+  # ---------- Public verification page (QR codes point here) ----------
+  verification:
+    base-url: ${VERIFICATION_BASE_URL:http://localhost:5173/verify}
