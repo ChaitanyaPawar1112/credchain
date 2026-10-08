@@ -15,13 +15,13 @@ export interface NavItem {
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   SUPER_ADMIN: [
     { label: 'Overview', to: '/admin', icon: 'home' },
-    { label: 'College applications', to: '/admin/institutions', icon: 'building', soon: '6.3',
+    { label: 'College applications', to: '/admin/institutions', icon: 'building',
       description: 'Review, approve or reject colleges that want to issue certificates.' },
-    { label: 'Users', to: '/admin/users', icon: 'users', soon: '6.3',
-      description: 'See every account and lock or unlock access.' },
-    { label: 'Blockchain check', to: '/admin/reconciliation', icon: 'chain', soon: '6.3',
+    { label: 'Users', to: '/admin/users', icon: 'users',
+      description: 'See every account: role, status and last login.' },
+    { label: 'Blockchain check', to: '/admin/reconciliation', icon: 'chain',
       description: 'Compare the database with what is recorded on Ethereum.' },
-    { label: 'Verification log', to: '/admin/verifications', icon: 'activity', soon: '6.3',
+    { label: 'Verification log', to: '/admin/verifications', icon: 'activity',
       description: 'Every public check, including FAKE attempts.' },
   ],
   INSTITUTION_ADMIN: [

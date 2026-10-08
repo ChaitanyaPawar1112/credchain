@@ -1,6 +1,8 @@
 import type { IconName } from '../../components/Icon'
 import type { VerificationStatus } from '../../api/verify'
 
+export { formatDate, formatDateTime, shorten, titleCase } from '../../lib/format'
+
 export interface StatusLook {
   title: string
   icon: IconName
@@ -52,29 +54,8 @@ const REVOCATION_REASON: Record<string, string> = {
 
 export const revocationReason = (reason: string) => REVOCATION_REASON[reason] ?? reason
 
-/** DEGREE -> Degree */
-export const titleCase = (value: string) =>
-  value.toLowerCase().replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
-
 const NETWORKS: Record<number, string> = { 1: 'Ethereum mainnet', 11155111: 'Ethereum Sepolia (test network)', 31337: 'Local test chain' }
 
 export const networkName = (chainId: number | null) =>
   chainId == null ? '—' : NETWORKS[chainId] ?? `Chain ${chainId}`
 
-export function formatDate(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value
-    : date.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-export function formatDateTime(value: string | null | undefined) {
-  if (!value) return '—'
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value
-    : date.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
-
-/** 0x1234…cdef, for long hashes and addresses. */
-export const shorten = (value: string, keep = 10) =>
-  value.length <= keep * 2 + 1 ? value : `${value.slice(0, keep)}…${value.slice(-keep + 2)}`
