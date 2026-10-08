@@ -37,7 +37,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   STUDENT: [
     { label: 'Overview', to: '/student', icon: 'home' },
-    { label: 'My certificates', to: '/student/certificates', icon: 'certificate', soon: '6.5',
+    { label: 'My certificates', to: '/student/certificates', icon: 'certificate',
       description: 'Claim, download and share the certificates your college issued.' },
   ],
   VERIFIER: [
