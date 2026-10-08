@@ -57,11 +57,6 @@ export function DashboardHome() {
                                group-hover:bg-navy-700 group-hover:text-gold-300">
                 <Icon name={item.icon} className="h-5 w-5" />
               </span>
-              {item.soon && (
-                <span className="rounded-full bg-gold-50 px-2 py-0.5 text-[11px] font-semibold text-gold-600 ring-1 ring-gold-100">
-                  Coming in {item.soon}
-                </span>
-              )}
             </div>
             <h3 className="mt-4 font-bold text-slate-900">{item.label}</h3>
             {item.description && <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-600">{item.description}</p>}

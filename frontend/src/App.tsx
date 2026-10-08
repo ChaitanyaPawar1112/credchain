@@ -2,9 +2,7 @@ import { Route, Routes } from 'react-router'
 import { RequireAuth } from './auth/RequireAuth'
 import { AppLayout } from './layouts/AppLayout'
 import { PublicLayout } from './layouts/PublicLayout'
-import { NAV_BY_ROLE } from './layouts/navigation'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
-import { ComingSoonPage } from './pages/ComingSoonPage'
 import { ApplyCollegePage } from './pages/ApplyCollegePage'
 import { DashboardHome } from './pages/DashboardHome'
 import { HomePage } from './pages/HomePage'
@@ -67,11 +65,6 @@ export function App() {
             </>
           )}
           {role === 'STUDENT' && <Route path="certificates" element={<MyCertificatesPage />} />}
-          {NAV_BY_ROLE[role]
-            .filter((item) => item.soon && item.to.startsWith(`${path}/`))
-            .map((item) => (
-              <Route key={item.to} path={item.to.slice(path.length + 1)} element={<ComingSoonPage />} />
-            ))}
         </Route>
       ))}
 
