@@ -20,10 +20,10 @@ export function TextField({ label, error, hint, className = '', ...rest }: TextF
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className={`mt-1 block w-full rounded-lg border bg-white px-3 py-2.5 text-sm shadow-sm outline-none transition
+        className={`mt-1.5 block w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm shadow-sm outline-none transition
           focus:ring-2 ${error
             ? 'border-red-400 focus:border-red-500 focus:ring-red-200'
-            : 'border-slate-300 focus:border-navy-600 focus:ring-navy-100'}`}
+            : 'border-slate-300 hover:border-slate-400 focus:border-navy-600 focus:ring-4 focus:ring-navy-100'}`}
       />
       {error && <p id={`${id}-error`} className="mt-1 text-xs text-red-600">{error}</p>}
       {!error && hint && <p id={`${id}-hint`} className="mt-1 text-xs text-slate-500">{hint}</p>}

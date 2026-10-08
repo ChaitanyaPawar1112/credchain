@@ -5,14 +5,15 @@ import { useAuth } from '../auth/AuthContext'
 import { HOME_BY_ROLE } from '../auth/roles'
 import { Alert } from '../components/Alert'
 import { Button } from '../components/Button'
+import { Icon, type IconName } from '../components/Icon'
 import { TextField } from '../components/TextField'
 import { errorMessage, fieldErrors } from '../components/errors'
 import { AuthCard } from '../layouts/AuthCard'
 import { PASSWORD_HINT, PASSWORD_RULE } from './passwordRule'
 
-const ROLES: { value: RegisterInput['role']; title: string; text: string }[] = [
-  { value: 'STUDENT', title: 'Student', text: 'See and share the certificates your college issued to you' },
-  { value: 'VERIFIER', title: 'Employer / verifier', text: 'Check certificates that candidates send you' },
+const ROLES: { value: RegisterInput['role']; icon: IconName; title: string; text: string }[] = [
+  { value: 'STUDENT', icon: 'student', title: 'Student', text: 'See and share the certificates your college issued to you' },
+  { value: 'VERIFIER', icon: 'briefcase', title: 'Employer / verifier', text: 'Check certificates that candidates send you' },
 ]
 
 export function RegisterPage() {
@@ -64,11 +65,20 @@ export function RegisterPage() {
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             {ROLES.map((r) => (
               <label key={r.value}
-                     className={`cursor-pointer rounded-lg p-3 ring-1 transition ${role === r.value
-                       ? 'bg-navy-50 ring-2 ring-navy-600' : 'ring-slate-300 hover:bg-slate-50'}`}>
+                     className={`relative cursor-pointer rounded-xl p-4 ring-1 transition ${role === r.value
+                       ? 'bg-navy-50 ring-2 ring-navy-600' : 'ring-slate-300 hover:bg-slate-50 hover:ring-slate-400'}`}>
                 <input type="radio" name="role" value={r.value} checked={role === r.value}
                        onChange={() => setRole(r.value)} className="sr-only" />
-                <span className="block text-sm font-semibold text-slate-900">{r.title}</span>
+                {role === r.value && (
+                  <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-navy-700 text-white">
+                    <Icon name="check" className="h-3 w-3" />
+                  </span>
+                )}
+                <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${role === r.value
+                  ? 'bg-navy-700 text-gold-300' : 'bg-slate-100 text-slate-600'}`}>
+                  <Icon name={r.icon} className="h-5 w-5" />
+                </span>
+                <span className="mt-3 block text-sm font-semibold text-slate-900">{r.title}</span>
                 <span className="mt-0.5 block text-xs text-slate-600">{r.text}</span>
               </label>
             ))}
