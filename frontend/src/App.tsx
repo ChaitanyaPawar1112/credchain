@@ -10,7 +10,7 @@ import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
-import { VerifyPage } from './pages/VerifyPage'
+import { VerifyPage } from './pages/verify/VerifyPage'
 import type { Role } from './api/types'
 
 /** One dashboard area per role: /admin, /institution, /student, /verifier. */

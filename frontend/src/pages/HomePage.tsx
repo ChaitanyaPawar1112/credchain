@@ -74,7 +74,7 @@ export function HomePage() {
             </form>
             <p className="mt-3 flex items-center gap-2 text-sm text-navy-200">
               <Icon name="upload" className="h-4 w-4" />
-              Have the PDF instead? <Link to="/verify" className="font-semibold text-white underline-offset-4 hover:underline">Upload it</Link>
+              Have the PDF instead? <Link to="/verify?tab=pdf" className="font-semibold text-white underline-offset-4 hover:underline">Upload it</Link>
             </p>
           </div>
 

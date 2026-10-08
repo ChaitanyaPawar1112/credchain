@@ -42,7 +42,7 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   VERIFIER: [
     { label: 'Overview', to: '/verifier', icon: 'home' },
-    { label: 'Verify a certificate', to: '/verify', icon: 'shield', soon: '6.2',
+    { label: 'Verify a certificate', to: '/verify', icon: 'shield',
       description: 'Paste a certificate hash or upload the PDF a candidate sent you.' },
   ],
 }
