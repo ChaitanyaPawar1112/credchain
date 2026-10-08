@@ -107,6 +107,8 @@ export interface RequestOptions {
   /** false for login/register: no token, no refresh-and-retry. */
   auth?: boolean
   signal?: AbortSignal
+  /** Accept header; set it for file downloads (PDF, CSV). */
+  accept?: string
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -119,8 +121,8 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 }
 
 async function send(path: string, options: RequestOptions, retried = false): Promise<Response> {
-  const { method = 'GET', body, auth = true, signal } = options
-  const headers: Record<string, string> = { Accept: 'application/json' }
+  const { method = 'GET', body, auth = true, signal, accept = 'application/json' } = options
+  const headers: Record<string, string> = { Accept: accept }
   let payload: BodyInit | undefined
   if (body instanceof FormData) {
     payload = body
