@@ -84,7 +84,8 @@ export function RegisterPage() {
             ))}
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            Colleges don't sign up here: they apply and are approved by the CredChain admin.
+            A college? Don't sign up here: <Link to="/apply" className="font-semibold text-navy-700 hover:underline">apply as a college</Link> and
+            the CredChain admin approves it.
           </p>
         </fieldset>
 

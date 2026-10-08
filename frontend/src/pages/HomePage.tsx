@@ -14,7 +14,7 @@ const STEPS: { icon: IconName; title: string; text: string }[] = [
 
 const AUDIENCES: { icon: IconName; title: string; text: string; cta: string; to: string }[] = [
   { icon: 'building', title: 'For colleges', text: 'Issue tamper-proof degrees and mark sheets for a whole batch in one go.',
-    cta: 'College admin log in', to: '/login' },
+    cta: 'Apply as a college', to: '/apply' },
   { icon: 'student', title: 'For students', text: 'Keep every certificate in one place and share a link that proves it is real.',
     cta: 'Create a student account', to: '/register' },
   { icon: 'briefcase', title: 'For employers', text: 'Check a candidate\'s certificate in seconds, with no paperwork.',

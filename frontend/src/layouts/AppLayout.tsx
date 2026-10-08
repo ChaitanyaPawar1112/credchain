@@ -32,7 +32,7 @@ export function AppLayout() {
           <NavLink
             key={item.to}
             to={item.to}
-            end
+            end={item.to === NAV_BY_ROLE[user.role][0]!.to}
             onClick={() => setMenuOpen(false)}
             className={({ isActive }) =>
               `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${

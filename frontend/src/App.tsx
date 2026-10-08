@@ -5,11 +5,17 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { NAV_BY_ROLE } from './layouts/navigation'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { ComingSoonPage } from './pages/ComingSoonPage'
+import { ApplyCollegePage } from './pages/ApplyCollegePage'
 import { DashboardHome } from './pages/DashboardHome'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { InstitutionDetailPage } from './pages/admin/InstitutionDetailPage'
+import { InstitutionsPage } from './pages/admin/InstitutionsPage'
+import { ReconciliationPage } from './pages/admin/ReconciliationPage'
+import { UsersPage } from './pages/admin/UsersPage'
+import { VerificationLogPage } from './pages/admin/VerificationLogPage'
 import { VerifyPage } from './pages/verify/VerifyPage'
 import type { Role } from './api/types'
 
@@ -30,12 +36,22 @@ export function App() {
         <Route path="verify/:certHash" element={<VerifyPage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
+        <Route path="apply" element={<ApplyCollegePage />} />
         <Route path="change-password" element={<RequireAuth><ChangePasswordPage /></RequireAuth>} />
       </Route>
 
       {AREAS.map(({ role, path }) => (
         <Route key={role} path={path} element={<RequireAuth roles={[role]}><AppLayout /></RequireAuth>}>
           <Route index element={<DashboardHome />} />
+          {role === 'SUPER_ADMIN' && (
+            <>
+              <Route path="institutions" element={<InstitutionsPage />} />
+              <Route path="institutions/:id" element={<InstitutionDetailPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="reconciliation" element={<ReconciliationPage />} />
+              <Route path="verifications" element={<VerificationLogPage />} />
+            </>
+          )}
           {NAV_BY_ROLE[role]
             .filter((item) => item.soon && item.to.startsWith(`${path}/`))
             .map((item) => (
