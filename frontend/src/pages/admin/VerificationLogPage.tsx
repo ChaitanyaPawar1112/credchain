@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { adminApi } from '../../api/admin'
+import { institutionApi } from '../../api/institution'
 import type { VerificationStatus } from '../../api/verify'
 import { Badge } from '../../components/Badge'
 import { Icon } from '../../components/Icon'
@@ -14,16 +15,33 @@ import { RESULT_LOOK, describeBrowser } from './labels'
 type Filter = VerificationStatus | 'ALL'
 const RESULTS: VerificationStatus[] = ['VALID', 'FAKE', 'REVOKED', 'EXPIRED', 'NOT_FOUND']
 
-/** Super admin: every public certificate check, with totals per result. FAKE shows forged certificates in use. */
-export function VerificationLogPage() {
+const SCOPES = {
+  admin: {
+    fetch: adminApi.verifications,
+    title: 'Verification log',
+    description: 'Every time someone checks a certificate on CredChain: by QR link, hash or PDF upload.',
+  },
+  institution: {
+    fetch: institutionApi.verifications,
+    title: 'Verification activity',
+    description: "Every time an employer or anyone else checks one of your college's certificates.",
+  },
+}
+
+/**
+ * Public certificate checks with totals per result. The super admin sees all of them (FAKE shows forged
+ * certificates in use); a college admin sees the checks of its own certificates.
+ */
+export function VerificationLogPage({ scope = 'admin' }: { scope?: keyof typeof SCOPES }) {
+  const source = SCOPES[scope]
   const [params, setParams] = useSearchParams()
   const requested = params.get('result') as VerificationStatus | null
   const filter: Filter = requested && RESULTS.includes(requested) ? requested : 'ALL'
   const [page, setPage] = useState(0)
 
   const log = useQuery({
-    queryKey: ['admin', 'verifications', filter, page],
-    queryFn: () => adminApi.verifications(filter === 'ALL' ? undefined : filter, page),
+    queryKey: [scope, 'verifications', filter, page],
+    queryFn: () => source.fetch(filter === 'ALL' ? undefined : filter, page),
     placeholderData: (previous) => previous,
   })
   const d = log.data
@@ -35,8 +53,7 @@ export function VerificationLogPage() {
 
   return (
     <div className="animate-fade-up mx-auto max-w-6xl space-y-6">
-      <PageHeader icon="activity" title="Verification log"
-                  description="Every time someone checks a certificate on CredChain: by QR link, hash or PDF upload." />
+      <PageHeader icon="activity" title={source.title} description={source.description} />
 
       <FilterTabs value={filter} onChange={changeFilter} options={[
         { value: 'ALL' as Filter, label: 'All checks', count: d?.totalChecks },

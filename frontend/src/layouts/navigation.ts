@@ -26,13 +26,13 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   INSTITUTION_ADMIN: [
     { label: 'Overview', to: '/institution', icon: 'home' },
-    { label: 'Students', to: '/institution/students', icon: 'student', soon: '6.4',
+    { label: 'Students', to: '/institution/students', icon: 'student',
       description: 'Add students one by one or import a CSV file.' },
-    { label: 'Batches', to: '/institution/batches', icon: 'layers', soon: '6.4',
+    { label: 'Batches', to: '/institution/batches', icon: 'layers',
       description: 'Group certificates and issue them on the blockchain together.' },
-    { label: 'Certificates', to: '/institution/certificates', icon: 'certificate', soon: '6.4',
+    { label: 'Certificates', to: '/institution/certificates', icon: 'certificate',
       description: 'Download PDFs, check status and revoke if needed.' },
-    { label: 'Verification activity', to: '/institution/verifications', icon: 'activity', soon: '6.4',
+    { label: 'Verification activity', to: '/institution/verifications', icon: 'activity',
       description: 'See when employers check your certificates.' },
   ],
   STUDENT: [

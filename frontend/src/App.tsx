@@ -16,6 +16,10 @@ import { InstitutionsPage } from './pages/admin/InstitutionsPage'
 import { ReconciliationPage } from './pages/admin/ReconciliationPage'
 import { UsersPage } from './pages/admin/UsersPage'
 import { VerificationLogPage } from './pages/admin/VerificationLogPage'
+import { BatchDetailPage } from './pages/institution/BatchDetailPage'
+import { BatchesPage } from './pages/institution/BatchesPage'
+import { CertificatesPage } from './pages/institution/CertificatesPage'
+import { StudentsPage } from './pages/institution/StudentsPage'
 import { VerifyPage } from './pages/verify/VerifyPage'
 import type { Role } from './api/types'
 
@@ -50,6 +54,15 @@ export function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="reconciliation" element={<ReconciliationPage />} />
               <Route path="verifications" element={<VerificationLogPage />} />
+            </>
+          )}
+          {role === 'INSTITUTION_ADMIN' && (
+            <>
+              <Route path="students" element={<StudentsPage />} />
+              <Route path="batches" element={<BatchesPage />} />
+              <Route path="batches/:id" element={<BatchDetailPage />} />
+              <Route path="certificates" element={<CertificatesPage />} />
+              <Route path="verifications" element={<VerificationLogPage scope="institution" />} />
             </>
           )}
           {NAV_BY_ROLE[role]

@@ -5,6 +5,7 @@ import { Avatar } from '../components/Avatar'
 import { Icon } from '../components/Icon'
 import { NAV_BY_ROLE } from '../layouts/navigation'
 import { AdminStats } from './admin/AdminStats'
+import { InstitutionStats } from './institution/InstitutionStats'
 
 function greeting(hour: number) {
   if (hour < 12) return 'Good morning'
@@ -39,6 +40,7 @@ export function DashboardHome() {
       </section>
 
       {user.role === 'SUPER_ADMIN' && <AdminStats />}
+      {user.role === 'INSTITUTION_ADMIN' && <InstitutionStats />}
 
       <div className="mt-10 flex items-end justify-between">
         <h2 className="text-lg font-bold text-slate-900">What you can do</h2>
