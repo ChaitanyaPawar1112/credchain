@@ -20,6 +20,7 @@ import { BatchDetailPage } from './pages/institution/BatchDetailPage'
 import { BatchesPage } from './pages/institution/BatchesPage'
 import { CertificatesPage } from './pages/institution/CertificatesPage'
 import { StudentsPage } from './pages/institution/StudentsPage'
+import { MyCertificatesPage } from './pages/student/MyCertificatesPage'
 import { VerifyPage } from './pages/verify/VerifyPage'
 import type { Role } from './api/types'
 
@@ -65,6 +66,7 @@ export function App() {
               <Route path="verifications" element={<VerificationLogPage scope="institution" />} />
             </>
           )}
+          {role === 'STUDENT' && <Route path="certificates" element={<MyCertificatesPage />} />}
           {NAV_BY_ROLE[role]
             .filter((item) => item.soon && item.to.startsWith(`${path}/`))
             .map((item) => (
