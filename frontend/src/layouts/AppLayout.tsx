@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
 import { ROLE_LABEL } from '../auth/roles'
 import { Avatar } from '../components/Avatar'
@@ -12,6 +12,16 @@ export function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const { pathname } = useLocation()
+
+  // browser tab title: the sidebar page you are on, e.g. "Batches · CredChain"
+  useEffect(() => {
+    const items = user ? NAV_BY_ROLE[user.role] : []
+    const current = items.slice(1).find((i) => pathname.startsWith(i.to)) ?? items.find((i) => i.to === pathname)
+    document.title = current ? `${current.label} · CredChain` : 'CredChain'
+    return () => { document.title = 'CredChain' }
+  }, [user, pathname])
+
   if (!user) {
     return null   // RequireAuth wraps this layout, so this only happens for a moment during logout
   }
@@ -43,9 +53,6 @@ export function AppLayout() {
                 {isActive && <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-gold-400" />}
                 <Icon name={item.icon} className={`h-5 w-5 ${isActive ? 'text-gold-300' : 'text-navy-300 group-hover:text-navy-100'}`} />
                 <span className="flex-1">{item.label}</span>
-                {item.soon && (
-                  <span className="rounded-md bg-gold-400/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-gold-300">soon</span>
-                )}
               </>
             )}
           </NavLink>

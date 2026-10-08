@@ -7,8 +7,6 @@ export interface NavItem {
   icon: IconName
   /** One line shown on the dashboard shortcut card. */
   description?: string
-  /** Built in a later Phase 6 step: shown with a "soon" badge until then. */
-  soon?: string
 }
 
 /** Sidebar links per role. */
