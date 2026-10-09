@@ -38,7 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Signs, sends and confirms Ethereum transactions (EIP-1559).
  *
- * - simulates first (eth_estimateGas): a transaction that would revert is never paid for
+ * - simulates first (eth_estimateGas), plain transfers included: a transaction that would revert is never paid for
  * - gas limit = estimate + 20%
  * - maxFeePerGas = 2 x baseFee + tip, never above app.blockchain.max-fee-per-gas-gwei
  * - one lock per sender address, so nonces never collide
@@ -50,7 +50,6 @@ import java.util.concurrent.locks.ReentrantLock;
 @ConditionalOnProperty(prefix = "app.blockchain", name = "enabled", havingValue = "true")
 public class TransactionSender {
 
-    public static final BigInteger TRANSFER_GAS = BigInteger.valueOf(21_000);
     private static final BigInteger GWEI = BigInteger.TEN.pow(9);
     private static final BigInteger GAS_MARGIN_PERCENT = BigInteger.valueOf(120);
     private static final BigInteger HUNDRED = BigInteger.valueOf(100);
@@ -78,7 +77,9 @@ public class TransactionSender {
         ReentrantLock lock = senderLocks.computeIfAbsent(sender.toLowerCase(Locale.ROOT), k -> new ReentrantLock());
         lock.lock();
         try {
-            BigInteger gasLimit = callData.isEmpty() ? TRANSFER_GAS : estimateGas(sender, to, value, callData, label);
+            // plain ETH transfers are estimated too: a fixed 21,000 gas is not always enough
+            // (funding a brand-new institution wallet on Sepolia reverted with it)
+            BigInteger gasLimit = estimateGas(sender, to, value, callData, label);
             Fees fees = currentFees();
             BigInteger nonce = rpc(web3j.ethGetTransactionCount(sender, DefaultBlockParameterName.PENDING), label)
                     .getTransactionCount();
@@ -160,7 +161,7 @@ public class TransactionSender {
 
     private BigInteger estimateGas(String from, String to, BigInteger value, String data, String label) {
         EthEstimateGas estimate = rpcRaw(web3j.ethEstimateGas(
-                Transaction.createFunctionCallTransaction(from, null, null, null, to, value, data)), label);
+                Transaction.createFunctionCallTransaction(from, null, null, null, to, value, data.isEmpty() ? null : data)), label);
         if (estimate.hasError()) {
 
             String revertData = estimate.getError().getData();
