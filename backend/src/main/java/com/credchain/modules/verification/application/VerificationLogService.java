@@ -4,6 +4,8 @@ import com.credchain.common.api.PageResponse;
 import com.credchain.modules.certificate.domain.Certificate;
 import com.credchain.modules.certificate.infrastructure.CertificateRepository;
 import com.credchain.modules.institution.application.InstitutionAccessGuard;
+import com.credchain.modules.fraud.infrastructure.DocumentAnalysis.RiskLevel;
+import com.credchain.modules.verification.api.dto.DocumentCheckResponse;
 import com.credchain.modules.verification.api.dto.PdfVerificationResponse;
 import com.credchain.modules.verification.api.dto.VerificationActivityResponse;
 import com.credchain.modules.verification.api.dto.VerificationResponse;
@@ -56,13 +58,30 @@ public class VerificationLogService {
 
     public void recordHashCheck(VerificationResponse response, String userAgent) {
         record(response.checkedAt(), VerificationMethod.HASH, response.status(), response.blockchainChecked(),
-                response.certHash(), response.status() != VerificationStatus.NOT_FOUND ? response : null, userAgent);
+                response.certHash(), response.status() != VerificationStatus.NOT_FOUND ? response : null, userAgent, null);
     }
 
     public void recordPdfCheck(PdfVerificationResponse response, String userAgent) {
         VerificationResponse record = response.record();
         record(response.checkedAt(), VerificationMethod.PDF, response.status(), record != null && record.blockchainChecked(),
-                record == null ? null : record.certHash(), record, userAgent);
+                record == null ? null : record.certHash(), record, userAgent, null);
+    }
+
+    /**
+     * A photo / scan check. HIGH risk is logged as FAKE (so it shows up with the forged PDFs);
+     * otherwise the result is the status of the certificate the QR code points to, or NOT_FOUND without one.
+     */
+    public void recordDocumentCheck(DocumentCheckResponse response, String userAgent) {
+        if (response.kind() == DocumentCheckResponse.Kind.EXACT_PDF) {
+            recordPdfCheck(response.pdfCheck(), userAgent);
+            return;
+        }
+        VerificationResponse record = response.record();
+        VerificationStatus result = response.riskLevel() == RiskLevel.HIGH ? VerificationStatus.FAKE
+                : record != null ? record.status() : VerificationStatus.NOT_FOUND;
+        VerificationResponse linked = record != null && record.status() != VerificationStatus.NOT_FOUND ? record : null;
+        record(response.checkedAt(), VerificationMethod.DOCUMENT, result, record != null && record.blockchainChecked(),
+                response.certHash(), linked, userAgent, response.riskScore());
     }
 
     /**
@@ -72,7 +91,8 @@ public class VerificationLogService {
      * (never for NOT_FOUND, so draft certificates stay hidden).
      */
     private void record(Instant checkedAt, VerificationMethod method, VerificationStatus result,
-                        boolean blockchainChecked, String certHash, VerificationResponse linked, String userAgent) {
+                        boolean blockchainChecked, String certHash, VerificationResponse linked, String userAgent,
+                        Integer riskScore) {
         try {
             newTransaction.executeWithoutResult(status -> {
                 Optional<Certificate> certificate = linked == null
@@ -81,7 +101,7 @@ public class VerificationLogService {
                 logRepository.save(VerificationLog.of(checkedAt, method, result, blockchainChecked, certHash,
                         certificate.map(Certificate::getId).orElse(null),
                         certificate.map(Certificate::getInstitutionId).orElse(null),
-                        userAgent));
+                        userAgent, riskScore));
             });
         } catch (RuntimeException e) {
             log.warn("Could not save verification log ({} {}): {}", method, result, e.getMessage());
@@ -133,7 +153,7 @@ public class VerificationLogService {
             return new VerificationActivityResponse.Entry(l.getId(), l.getCheckedAt(), l.getMethod(), l.getResult(),
                     l.isBlockchainChecked(), l.getCertHash(), l.getCertificateId(),
                     c == null ? null : c.getCertificateNumber(), c == null ? null : c.getStudentName(),
-                    l.getInstitutionId(), l.getUserAgent());
+                    l.getInstitutionId(), l.getUserAgent(), l.getRiskScore());
         })));
     }
 

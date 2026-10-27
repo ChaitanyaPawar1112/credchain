@@ -58,10 +58,21 @@ public class VerificationLog {
     @Column(name = "user_agent", updatable = false, length = MAX_USER_AGENT)
     private String userAgent;
 
+    /** Risk score 0-100 of a DOCUMENT check (AI fraud detection); null for HASH and PDF checks. */
+    @Column(name = "risk_score", updatable = false)
+    private Integer riskScore;
+
     public static VerificationLog of(Instant checkedAt, VerificationMethod method, VerificationStatus result,
                                      boolean blockchainChecked, String certHash, UUID certificateId,
                                      UUID institutionId, String userAgent) {
+        return of(checkedAt, method, result, blockchainChecked, certHash, certificateId, institutionId, userAgent, null);
+    }
+
+    public static VerificationLog of(Instant checkedAt, VerificationMethod method, VerificationStatus result,
+                                     boolean blockchainChecked, String certHash, UUID certificateId,
+                                     UUID institutionId, String userAgent, Integer riskScore) {
         VerificationLog log = new VerificationLog();
+        log.riskScore = riskScore;
         log.checkedAt = checkedAt;
         log.method = method;
         log.result = result;

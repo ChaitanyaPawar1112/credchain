@@ -50,7 +50,11 @@ public enum ErrorCode {
     STORAGE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "File storage is not available. Please try again later"),
 
     // ---------- Public verification (Phase 5) ----------
-    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many verification requests. Please wait a minute and try again");
+    RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "Too many verification requests. Please wait a minute and try again"),
+
+    // ---------- Fraud detection (Phase 7) ----------
+    FRAUD_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
+            "The photo and scan check is not available right now. Please try again later, or check the PDF or QR link instead");
 
     private final HttpStatus status;
     private final String defaultMessage;

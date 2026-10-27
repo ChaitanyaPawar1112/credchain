@@ -4,6 +4,9 @@ A small Python service (FastAPI) that looks for signs of forgery in certificate 
 CredChain-issued PDFs: phone photos, scans, and PDFs made in other programs. The CredChain backend calls it;
 browsers never do.
 
+The public endpoint is `POST /api/v1/public/verify/document` on the backend. The backend sends the file here, looks up
+the certificate the QR code points to, and compares the printed text with that official record.
+
 It never says a document is genuine. Only the blockchain check (QR code or "Upload PDF") proves that. This service
 gives a **risk score** with reasons, so a verifier knows what to look at.
 

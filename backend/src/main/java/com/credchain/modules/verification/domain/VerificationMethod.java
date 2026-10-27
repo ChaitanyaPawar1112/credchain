@@ -5,5 +5,7 @@ public enum VerificationMethod {
     /** By hash: QR code, link or typed hash. */
     HASH,
     /** By uploading the PDF. */
-    PDF
+    PDF,
+    /** By uploading a photo, scan or other document (AI fraud checks, Phase 7). */
+    DOCUMENT
 }

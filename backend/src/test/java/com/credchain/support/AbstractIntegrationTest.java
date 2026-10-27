@@ -28,7 +28,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(InMemoryObjectStorage.class)   // stands in for RustFS/S3 (app.storage.enabled=false in tests)
+// InMemoryObjectStorage stands in for RustFS/S3 (app.storage.enabled=false in tests),
+// StubFraudServiceConfig for the Python fraud-detection service
+@Import({InMemoryObjectStorage.class, StubFraudServiceConfig.class})
 public abstract class AbstractIntegrationTest {
 
     protected static final String STRONG_PASSWORD = "Str0ng@Pass";
