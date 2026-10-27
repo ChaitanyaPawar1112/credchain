@@ -9,4 +9,11 @@ public interface FraudServiceClient {
      * @throws FraudServiceException when the service is off, unreachable, or refuses the file
      */
     DocumentAnalysis analyse(byte[] file, String fileName);
+
+    /**
+     * Unusual activity per college (Isolation Forest) and a 0-100 trust score.
+     *
+     * @throws FraudServiceException when the service is off or unreachable
+     */
+    InstitutionTrustAnalysis analyseInstitutions(InstitutionActivity activity);
 }

@@ -23,8 +23,27 @@ gives a **risk score** with reasons, so a verifier knows what to look at.
 
 Score 0–24 is **LOW**, 25–54 **MEDIUM**, 55–100 **HIGH**.
 
+## College trust score (machine learning)
+
+`POST /v1/analyze/institutions` gets one row per college per day from the backend (certificates issued and revoked,
+public checks, forged copies seen, certificates issued between midnight and 6 a.m.). It returns a 0–100 trust score
+per college with reasons:
+
+- An **Isolation Forest** (scikit-learn, unsupervised: it needs no examples of fraud) learns what ordinary days look
+  like from every college's history and flags days unlike the rest. A flagged day from the last 7 days is reported
+  when one number is at least 4 times that college's own normal, for example
+  "2400 certificates issued between midnight and 6 a.m. on 26 Oct 2026, while it normally has none". Each one costs
+  25 points (at most 50).
+- Rules: more than 5% of its certificates revoked costs up to 30 points; forged, edited or high-risk copies of its
+  certificates being checked cost up to 25.
+- With fewer than 30 days of rows on the whole platform, only the rules run (`modelUsed: false`).
+
+80–100 is **TRUSTED**, 50–79 **WATCH**, 0–49 **AT_RISK**. The backend runs this every night at 02:30 and on demand
+(`POST /api/v1/admin/institution-trust/recompute`).
+
 ## API
 
+- `POST /v1/analyze/institutions` (JSON: `today`, `institutions[]`, `days[]`) returns a trust score per college
 - `GET /health` returns `{"status":"UP","ocr":true}`
 - `POST /v1/analyze/document` (multipart field `file`: PDF, JPEG, PNG or WebP, up to 5 MB) returns
   `riskScore`, `riskLevel`, `summary`, `qr.certHash`, `text.text`, `signals[]` and `elaImage` (base64 PNG)

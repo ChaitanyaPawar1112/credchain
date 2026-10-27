@@ -89,6 +89,32 @@ class HttpFraudServiceClientTest {
     }
 
     @Test
+    @DisplayName("institution analysis: sends the activity as JSON and reads the trust scores")
+    void institutions() {
+        server.expect(requestTo("http://fraud.test/v1/analyze/institutions"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath("$.today").value("2026-10-27"))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath("$.days[0].offHoursIssued").value(7))
+                .andRespond(withSuccess("""
+                        {"model": "IsolationForest", "modelUsed": true, "rowsAnalysed": 1,
+                         "institutions": [{"institutionId": "c1", "name": "College", "trustScore": 75, "level": "WATCH",
+                                           "reasons": ["7 certificates issued between midnight and 6 a.m."],
+                                           "anomalies": [{"date": "2026-10-27", "score": 0.6, "detail": "night"}]}]}
+                        """, MediaType.APPLICATION_JSON));
+
+        InstitutionTrustAnalysis analysis = client(true, "").analyseInstitutions(new InstitutionActivity(
+                java.time.LocalDate.of(2026, 10, 27),
+                java.util.List.of(new InstitutionActivity.Institution("c1", "College")),
+                java.util.List.of(new InstitutionActivity.Day("c1", java.time.LocalDate.of(2026, 10, 27), 7, 0, 0, 0, 0, 7))));
+
+        assertThat(analysis.modelUsed()).isTrue();
+        assertThat(analysis.institutions().get(0).trustScore()).isEqualTo(75);
+        assertThat(analysis.institutions().get(0).anomalies().get(0).date()).isEqualTo(java.time.LocalDate.of(2026, 10, 27));
+        server.verify();
+    }
+
+    @Test
     @DisplayName("switched off: nothing is called")
     void disabled() {
         assertThatThrownBy(() -> client(false, "").analyse(new byte[]{1}, "a.jpg"))

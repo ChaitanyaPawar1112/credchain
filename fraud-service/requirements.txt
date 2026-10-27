@@ -8,3 +8,4 @@ opencv-python-headless==4.13.0.92
 pypdf==6.21.3
 pypdfium2==5.14.0
 pytesseract==0.3.13
+scikit-learn==1.9.1

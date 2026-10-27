@@ -136,3 +136,7 @@ app:
     api-key: ${FRAUD_API_KEY:}                        # secret, shared with the service (infra/.env)
     connect-timeout: 3s
     read-timeout: 60s                                 # OCR of a large photo can take a while
+    trust:
+      time-zone: ${APP_TIME_ZONE:Asia/Kolkata}         # days and "midnight to 6 a.m." are counted here
+      history-days: 90                                  # the model learns "normal" from this many days
+      cron: ${FRAUD_TRUST_CRON:0 30 2 * * *}            # daily trust analysis at 02:30

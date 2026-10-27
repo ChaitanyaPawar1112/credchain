@@ -17,12 +17,16 @@ import org.springframework.web.client.RestClientResponseException;
 import java.net.http.HttpClient;
 import java.util.Map;
 
-/** Talks to the Python service over HTTP: POST {base-url}/v1/analyze/document with the file as multipart. */
+/**
+ * Talks to the Python service over HTTP: POST {base-url}/v1/analyze/document with the file as multipart,
+ * and POST {base-url}/v1/analyze/institutions with the colleges' daily activity as JSON.
+ */
 @Slf4j
 @Component
 public class HttpFraudServiceClient implements FraudServiceClient {
 
     static final String ANALYZE_PATH = "/v1/analyze/document";
+    static final String INSTITUTIONS_PATH = "/v1/analyze/institutions";
     static final String API_KEY_HEADER = "X-Api-Key";
 
     private final FraudServiceProperties properties;
@@ -83,6 +87,32 @@ public class HttpFraudServiceClient implements FraudServiceClient {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(properties.readTimeout());
         return factory;
+    }
+
+    @Override
+    public InstitutionTrustAnalysis analyseInstitutions(InstitutionActivity activity) {
+        if (!properties.enabled()) {
+            throw FraudServiceException.unavailable("The fraud-detection service is switched off (app.fraud.enabled=false)", null);
+        }
+        try {
+            InstitutionTrustAnalysis analysis = restClient.post()
+                    .uri(INSTITUTIONS_PATH)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(activity)
+                    .retrieve()
+                    .body(InstitutionTrustAnalysis.class);
+            if (analysis == null || analysis.institutions() == null) {
+                throw FraudServiceException.unavailable("The fraud-detection service sent an incomplete answer", null);
+            }
+            return analysis;
+        } catch (RestClientResponseException e) {
+            log.warn("Fraud-detection service answered {} to the institution analysis: {}",
+                    e.getStatusCode().value(), e.getResponseBodyAsString());
+            throw FraudServiceException.unavailable("The fraud-detection service failed (" + e.getStatusCode().value() + ")", e);
+        } catch (RestClientException e) {
+            log.warn("Fraud-detection service not reachable at {}: {}", properties.baseUrl(), e.getMessage());
+            throw FraudServiceException.unavailable("The fraud-detection service is not reachable", e);
+        }
     }
 
     /** 400 empty file, 413 too large, 415 not a PDF/image: the user's file, not our problem. 401 = wrong key = ours. */
