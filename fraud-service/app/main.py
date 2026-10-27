@@ -3,18 +3,20 @@ HTTP API of the fraud-detection service. Only the CredChain backend calls it (no
 
   GET  /health                 is the service up, and is OCR available
   POST /v1/analyze/document    forensic checks on a certificate photo, scan or PDF
+  POST /v1/analyze/institutions   unusual activity per college (Isolation Forest) and a trust score
 """
 import hmac
 import logging
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile, status
 
-from app import loader, scoring
+from app import institutions, loader, scoring
 from app.checks import ela, metadata, ocr, qr
 from app.config import settings
 from app.models import DocumentAnalysis
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
+MAX_INSTITUTION_DAYS = 200_000   # e.g. 2,000 colleges x 90 days
 log = logging.getLogger("fraud-service")
 
 app = FastAPI(title="CredChain fraud-detection service", version=VERSION,
@@ -46,6 +48,14 @@ def analyze_document(file: UploadFile = File(...)) -> DocumentAnalysis:
     except loader.UnsupportedFile as e:
         raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, str(e)) from e
     return analyse(document)
+
+
+@app.post("/v1/analyze/institutions", response_model=institutions.InstitutionResponse, response_model_by_alias=True,
+          dependencies=[Depends(require_api_key)])
+def analyze_institutions(request: institutions.InstitutionRequest) -> institutions.InstitutionResponse:
+    if len(request.days) > MAX_INSTITUTION_DAYS:
+        raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, f"At most {MAX_INSTITUTION_DAYS} rows per request.")
+    return institutions.analyse(request)
 
 
 def analyse(document: loader.LoadedDocument) -> DocumentAnalysis:

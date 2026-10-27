@@ -3,6 +3,8 @@ package com.credchain.support;
 import com.credchain.modules.fraud.infrastructure.DocumentAnalysis;
 import com.credchain.modules.fraud.infrastructure.FraudServiceClient;
 import com.credchain.modules.fraud.infrastructure.FraudServiceException;
+import com.credchain.modules.fraud.infrastructure.InstitutionActivity;
+import com.credchain.modules.fraud.infrastructure.InstitutionTrustAnalysis;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class StubFraudServiceClient implements FraudServiceClient {
 
     private volatile DocumentAnalysis answer;
+    private volatile java.util.function.Function<InstitutionActivity, InstitutionTrustAnalysis> trustAnswer;
+    private volatile InstitutionActivity lastActivity;
     private volatile FraudServiceException failure;
     private final AtomicInteger calls = new AtomicInteger();
 
@@ -24,6 +28,36 @@ public class StubFraudServiceClient implements FraudServiceClient {
             throw FraudServiceException.unavailable("No stub answer set up", null);
         }
         return answer;
+    }
+
+    /**
+     * Trust analysis: records what was sent; answers with the function set by respondToTrustWith,
+     * or by default "score 100, TRUSTED" for every college.
+     */
+    @Override
+    public InstitutionTrustAnalysis analyseInstitutions(InstitutionActivity activity) {
+        calls.incrementAndGet();
+        lastActivity = activity;
+        if (failure != null) {
+            throw failure;
+        }
+        if (trustAnswer != null) {
+            return trustAnswer.apply(activity);
+        }
+        return new InstitutionTrustAnalysis("IsolationForest", false, activity.days().size(),
+                activity.institutions().stream()
+                        .map(i -> new InstitutionTrustAnalysis.Trust(i.institutionId(), i.name(), 100, "TRUSTED",
+                                List.of("No unusual activity found."), List.of()))
+                        .toList());
+    }
+
+    public void respondToTrustWith(java.util.function.Function<InstitutionActivity, InstitutionTrustAnalysis> answer) {
+        this.trustAnswer = answer;
+        this.failure = null;
+    }
+
+    public InstitutionActivity lastActivity() {
+        return lastActivity;
     }
 
     public void respondWith(DocumentAnalysis analysis) {
@@ -41,6 +75,8 @@ public class StubFraudServiceClient implements FraudServiceClient {
 
     public void reset() {
         answer = null;
+        trustAnswer = null;
+        lastActivity = null;
         failure = null;
         calls.set(0);
     }
