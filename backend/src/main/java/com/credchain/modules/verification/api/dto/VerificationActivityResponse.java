@@ -27,7 +27,9 @@ public record VerificationActivityResponse(
             String certificateNumber,
             String studentName,
             UUID institutionId,
-            String userAgent
+            String userAgent,
+            /** 0-100 for photo / scan checks (AI fraud detection), null otherwise. */
+            Integer riskScore
     ) {
     }
 }
