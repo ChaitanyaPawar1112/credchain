@@ -167,3 +167,8 @@ app:
   # ---------- Analytics dashboard (Phase 8.3) ----------
   analytics:
     time-zone: ${APP_TIME_ZONE:Asia/Kolkata}          # the charts count days in this time zone
+
+  # ---------- Share links (Phase 8.4) ----------
+  share:
+    base-url: ${SHARE_BASE_URL:http://localhost:5173/s}   # a student's link opens {base-url}/{token}
+    max-active-per-student: 20
