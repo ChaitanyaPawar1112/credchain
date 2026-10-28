@@ -4,6 +4,8 @@ import com.credchain.common.api.PageResponse;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.common.util.PasswordGenerator;
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.modules.auth.application.RefreshTokenService;
 import com.credchain.modules.institution.api.dto.InstitutionApprovalResponse;
 import com.credchain.modules.institution.api.dto.InstitutionResponse;
@@ -41,6 +43,7 @@ public class InstitutionReviewService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final ApplicationEventPublisher events;
+    private final AuditService audit;
     private final Clock clock;
 
     // ---------- Queries ----------
@@ -92,6 +95,8 @@ public class InstitutionReviewService {
 
         log.info("Institution {} approved by {}; admin account {} created",
                 institution.getCode(), reviewerId, admin.getId());   // never log the password
+        audit(AuditAction.INSTITUTION_APPROVED, reviewerId, institution,
+                "Approved " + label(institution) + " and created the admin account " + admin.getEmail());
 
         return new InstitutionApprovalResponse(
                 InstitutionResponse.from(institution),
@@ -108,6 +113,7 @@ public class InstitutionReviewService {
         institution.reject(reviewerId, reason, clock.instant());   // throws 409 if not PENDING
         events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.REJECTED));
         log.info("Institution {} rejected by {}", institution.getCode(), reviewerId);
+        audit(AuditAction.INSTITUTION_REJECTED, reviewerId, institution, "Rejected " + label(institution) + ": " + reason);
         return InstitutionResponse.from(institution);
     }
 
@@ -123,6 +129,8 @@ public class InstitutionReviewService {
         events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.SUSPENDED));
 
         log.warn("Institution {} suspended by {}", institution.getCode(), reviewerId);
+        audit(AuditAction.INSTITUTION_SUSPENDED, reviewerId, institution,
+                "Suspended " + label(institution) + " (its admins were logged out and it can no longer issue)");
         return InstitutionResponse.from(institution);
     }
 
@@ -132,7 +140,16 @@ public class InstitutionReviewService {
         institution.reinstate(reviewerId, clock.instant());
         events.publishEvent(new InstitutionStatusChangedEvent(institution.getId(), InstitutionStatus.APPROVED));
         log.info("Institution {} reinstated by {}", institution.getCode(), reviewerId);
+        audit(AuditAction.INSTITUTION_REINSTATED, reviewerId, institution, "Reinstated " + label(institution));
         return InstitutionResponse.from(institution);
+    }
+
+    private void audit(AuditAction action, UUID reviewerId, Institution institution, String summary) {
+        audit.record(action, reviewerId, institution.getId(), "INSTITUTION", institution.getId(), summary);
+    }
+
+    private static String label(Institution institution) {
+        return institution.getName() + " (" + institution.getCode() + ")";
     }
 
     private Institution load(UUID id) {

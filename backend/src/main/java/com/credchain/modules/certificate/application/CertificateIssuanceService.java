@@ -1,5 +1,7 @@
 package com.credchain.modules.certificate.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.api.PageResponse;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
@@ -57,6 +59,7 @@ public class CertificateIssuanceService {
     private final CertificateRepository certificateRepository;
     private final InstitutionWalletRepository walletRepository;
     private final BlockchainProperties blockchainProperties;
+    private final AuditService audit;
     private final Clock clock;
 
     // ---------- batches ----------
@@ -68,6 +71,8 @@ public class CertificateIssuanceService {
         CertificateBatch batch = batchRepository.save(CertificateBatch.createDraft(
                 institution.getId(), request.title(), request.expiresAt(), adminUserId, clock.instant()));
         log.info("Certificate batch {} created by {} for institution {}", batch.getId(), adminUserId, institution.getCode());
+        audit.record(AuditAction.BATCH_CREATED, adminUserId, institution.getId(), "BATCH", batch.getId(),
+                "Created the batch \"" + batch.getTitle() + "\"");
         return BatchResponse.from(batch, 0);
     }
 
@@ -98,6 +103,8 @@ public class CertificateIssuanceService {
         batchRepository.delete(batch);
 
         log.info("Draft batch {} deleted by {}", batchId, adminUserId);
+        audit.record(AuditAction.BATCH_DELETED, adminUserId, institution.getId(), "BATCH", batchId,
+                "Deleted the draft batch \"" + batch.getTitle() + "\"");
     }
 
     // ---------- certificates in a draft ----------
@@ -174,6 +181,9 @@ public class CertificateIssuanceService {
 
         log.info("Batch {} of institution {} queued: {} certificates, root {}",
                 batch.getId(), institution.getCode(), certificates.size(), tree.rootHex());
+        audit.record(AuditAction.BATCH_ISSUED, adminUserId, institution.getId(), "BATCH", batch.getId(),
+                "Issued the batch \"" + batch.getTitle() + "\" with " + certificates.size()
+                        + " certificates (sent to the blockchain)");
         return BatchResponse.from(batch, certificates.size());
     }
 

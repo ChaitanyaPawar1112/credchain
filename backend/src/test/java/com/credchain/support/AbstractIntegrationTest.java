@@ -50,7 +50,7 @@ public abstract class AbstractIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
-        jdbcTemplate.execute("TRUNCATE TABLE refresh_tokens, students, users, institutions CASCADE");
+        jdbcTemplate.execute("TRUNCATE TABLE refresh_tokens, students, users, institutions, audit_events CASCADE");
     }
 
     // ---------- Phase 1 request helpers ----------

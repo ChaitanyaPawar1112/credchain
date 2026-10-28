@@ -23,6 +23,8 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       description: 'Every public check, including FAKE attempts and photo checks.' },
     { label: 'College trust scores', to: '/admin/trust', icon: 'gauge',
       description: 'AI score per college: unusual activity, revocations and forged copies.' },
+    { label: 'Audit log', to: '/admin/audit', icon: 'history',
+      description: 'Who did what and when, across the whole platform.' },
   ],
   INSTITUTION_ADMIN: [
     { label: 'Overview', to: '/institution', icon: 'home' },
@@ -34,6 +36,8 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       description: 'Download PDFs, check status and revoke if needed.' },
     { label: 'Verification activity', to: '/institution/verifications', icon: 'activity',
       description: 'See when employers check your certificates.' },
+    { label: 'Audit log', to: '/institution/audit', icon: 'history',
+      description: "Who did what in your college's account." },
   ],
   STUDENT: [
     { label: 'Overview', to: '/student', icon: 'home' },

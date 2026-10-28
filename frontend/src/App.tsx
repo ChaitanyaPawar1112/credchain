@@ -4,6 +4,7 @@ import { AppLayout } from './layouts/AppLayout'
 import { PublicLayout } from './layouts/PublicLayout'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { ApplyCollegePage } from './pages/ApplyCollegePage'
+import { AuditLogPage } from './pages/AuditLogPage'
 import { DashboardHome } from './pages/DashboardHome'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
@@ -55,6 +56,7 @@ export function App() {
               <Route path="reconciliation" element={<ReconciliationPage />} />
               <Route path="verifications" element={<VerificationLogPage />} />
               <Route path="trust" element={<InstitutionTrustPage />} />
+              <Route path="audit" element={<AuditLogPage />} />
             </>
           )}
           {role === 'INSTITUTION_ADMIN' && (
@@ -64,6 +66,7 @@ export function App() {
               <Route path="batches/:id" element={<BatchDetailPage />} />
               <Route path="certificates" element={<CertificatesPage />} />
               <Route path="verifications" element={<VerificationLogPage scope="institution" />} />
+              <Route path="audit" element={<AuditLogPage scope="institution" />} />
             </>
           )}
           {role === 'STUDENT' && <Route path="certificates" element={<MyCertificatesPage />} />}

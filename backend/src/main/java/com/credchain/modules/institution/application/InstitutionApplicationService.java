@@ -1,5 +1,8 @@
 package com.credchain.modules.institution.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
+import com.credchain.modules.audit.domain.AuditEvent.Actor;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.institution.api.dto.ApplicationStatusResponse;
@@ -23,6 +26,7 @@ public class InstitutionApplicationService {
 
     private final InstitutionRepository institutionRepository;
     private final UserRepository userRepository;
+    private final AuditService audit;
 
     @Transactional
     public InstitutionResponse apply(InstitutionApplicationRequest request) {
@@ -55,6 +59,9 @@ public class InstitutionApplicationService {
         }
 
         log.info("New institution application {} ({})", institution.getId(), institution.getCode());
+        audit.record(AuditAction.INSTITUTION_APPLIED, Actor.anonymous(institution.getContactPersonEmail()),
+                institution.getId(), "INSTITUTION", institution.getId(),
+                institution.getName() + " (" + institution.getCode() + ") applied to join CredChain");
         return InstitutionResponse.from(institution);
     }
 
