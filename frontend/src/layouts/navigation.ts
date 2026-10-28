@@ -20,7 +20,9 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { label: 'Blockchain check', to: '/admin/reconciliation', icon: 'chain',
       description: 'Compare the database with what is recorded on Ethereum.' },
     { label: 'Verification log', to: '/admin/verifications', icon: 'activity',
-      description: 'Every public check, including FAKE attempts.' },
+      description: 'Every public check, including FAKE attempts and photo checks.' },
+    { label: 'College trust scores', to: '/admin/trust', icon: 'gauge',
+      description: 'AI score per college: unusual activity, revocations and forged copies.' },
   ],
   INSTITUTION_ADMIN: [
     { label: 'Overview', to: '/institution', icon: 'home' },
@@ -41,6 +43,6 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   VERIFIER: [
     { label: 'Overview', to: '/verifier', icon: 'home' },
     { label: 'Verify a certificate', to: '/verify', icon: 'shield',
-      description: 'Paste a certificate hash or upload the PDF a candidate sent you.' },
+      description: 'Paste a certificate hash, upload the PDF, or check a photo or scan for forgery.' },
   ],
 }

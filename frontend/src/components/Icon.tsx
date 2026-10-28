@@ -30,6 +30,8 @@ const PATHS = {
   copy: 'M9 9h11v11H9zM5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1',
   file: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5',
   hash: 'M4 9h16M4 15h16M10 3 8 21M16 3l-2 18',
+  camera: 'M3 8a2 2 0 0 1 2-2h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  gauge: 'M3.5 17a9 9 0 1 1 17 0M12 14l4-5M12 15a1 1 0 1 0 0-2 1 1 0 0 0 0 2z',
 } as const
 
 export type IconName = keyof typeof PATHS

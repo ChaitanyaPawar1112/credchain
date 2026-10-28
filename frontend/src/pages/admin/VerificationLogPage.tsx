@@ -10,7 +10,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { Pagination } from '../../components/Pagination'
 import { EmptyState, FilterTabs, LoadError, LoadingRows, Panel, td, th } from '../../components/Panel'
 import { formatDateTime, timeAgo } from '../../lib/format'
-import { RESULT_LOOK, describeBrowser } from './labels'
+import { METHOD_LOOK, RESULT_LOOK, describeBrowser, riskColor } from './labels'
 
 type Filter = VerificationStatus | 'ALL'
 const RESULTS: VerificationStatus[] = ['VALID', 'FAKE', 'REVOKED', 'EXPIRED', 'NOT_FOUND']
@@ -19,7 +19,7 @@ const SCOPES = {
   admin: {
     fetch: adminApi.verifications,
     title: 'Verification log',
-    description: 'Every time someone checks a certificate on CredChain: by QR link, hash or PDF upload.',
+    description: 'Every time someone checks a certificate on CredChain: by QR link, hash, PDF upload or photo.',
   },
   institution: {
     fetch: institutionApi.verifications,
@@ -102,9 +102,12 @@ export function VerificationLogPage({ scope = 'admin' }: { scope?: keyof typeof 
                       </td>
                       <td className={td}>
                         <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                          <Icon name={c.method === 'PDF' ? 'file' : 'qr'} className="h-4 w-4 text-slate-400" />
-                          {c.method === 'PDF' ? 'PDF upload' : 'QR link / hash'}
+                          <Icon name={METHOD_LOOK[c.method].icon} className="h-4 w-4 text-slate-400" />
+                          {METHOD_LOOK[c.method].label}
                         </span>
+                        {c.riskScore != null && (
+                          <p className={`mt-1 text-xs font-semibold ${riskColor(c.riskScore)}`}>Risk {c.riskScore} / 100</p>
+                        )}
                       </td>
                       <td className={td}>
                         {c.certificateNumber ? (

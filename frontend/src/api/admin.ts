@@ -84,8 +84,10 @@ export interface ReconciliationReport {
 export interface VerificationEntry {
   id: string
   checkedAt: string
-  method: 'HASH' | 'PDF'
+  method: 'HASH' | 'PDF' | 'DOCUMENT'
   result: VerificationStatus
+  /** 0-100 for a photo or scan check (method DOCUMENT), else null. */
+  riskScore: number | null
   blockchainChecked: boolean
   certHash: string | null
   certificateId: string | null
@@ -99,6 +101,28 @@ export interface VerificationActivity {
   totalChecks: number
   byResult: Record<VerificationStatus, number>
   checks: PageResponse<VerificationEntry>
+}
+
+export type TrustLevel = 'TRUSTED' | 'WATCH' | 'AT_RISK'
+
+export interface InstitutionTrust {
+  institutionId: string
+  name: string
+  code: string
+  /** 0-100; null when the college has not been analysed yet (e.g. approved after the last run). */
+  trustScore: number | null
+  level: TrustLevel | null
+  reasons: string[]
+  anomalyCount: number
+  /** false = too little history on the platform for the machine-learning model; rules only. */
+  modelUsed: boolean
+  computedAt: string | null
+}
+
+export interface InstitutionTrustReport {
+  /** When the analysis last ran; null if it never ran. */
+  computedAt: string | null
+  institutions: InstitutionTrust[]
 }
 
 const query = (params: Record<string, string | number | undefined>) => {
@@ -129,6 +153,9 @@ export const adminApi = {
 
   verifications: (result: VerificationStatus | undefined, page: number, size = PAGE_SIZE) =>
     apiRequest<VerificationActivity>(`/api/v1/admin/verifications?${query({ result, page, size })}`),
+
+  trust: () => apiRequest<InstitutionTrustReport>('/api/v1/admin/institution-trust'),
+  recomputeTrust: () => apiRequest<InstitutionTrustReport>('/api/v1/admin/institution-trust/recompute', { method: 'POST' }),
 }
 
 export interface InstitutionApplication {

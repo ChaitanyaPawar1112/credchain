@@ -56,8 +56,53 @@ export interface PdfVerificationResult {
   record: VerificationResult | null
 }
 
-/** Same limit as spring.servlet.multipart.max-file-size. */
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export interface DocumentSignal {
+  code: string
+  severity: 'INFO' | 'LOW' | 'MEDIUM' | 'HIGH'
+  /** Risk points this finding added (0 for information only). */
+  weight: number
+  detail: string
+}
+
+export interface FieldCheck {
+  field: string
+  officialValue: string
+  result: PdfCheck['result']
+}
+
+/**
+ * Result of checking a photo, scan or other copy (backend DocumentCheckResponse).
+ * kind EXACT_PDF: the upload was a CredChain PDF, so the exact PDF check ran (pdfCheck); the rest is empty.
+ * kind DOCUMENT_ANALYSIS: the AI forensic checks ran; record is the certificate the QR code points to, if any.
+ */
+export interface DocumentCheckResult {
+  kind: 'EXACT_PDF' | 'DOCUMENT_ANALYSIS'
+  pdfCheck: PdfVerificationResult | null
+  riskScore: number | null
+  riskLevel: RiskLevel | null
+  summary: string | null
+  fileType: string
+  qrFound: boolean
+  certHash: string | null
+  textRead: boolean
+  fieldChecks: FieldCheck[]
+  signals: DocumentSignal[]
+  record: VerificationResult | null
+  /** Error Level Analysis heat map (base64 PNG) for JPEG photos, else null. */
+  elaImage: string | null
+  checkedAt: string
+}
+
+/** The PDF check keeps its own 2 MB limit. */
 export const MAX_PDF_BYTES = 2 * 1024 * 1024
+
+/** Same limit as spring.servlet.multipart.max-file-size (photos of certificates). */
+export const MAX_DOCUMENT_BYTES = 5 * 1024 * 1024
+
+/** File types the fraud-detection service can read. */
+export const DOCUMENT_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
 
 export const verifyApi = {
   byHash: (certHash: string, signal?: AbortSignal) =>
@@ -67,6 +112,12 @@ export const verifyApi = {
     const form = new FormData()
     form.append('file', file)
     return apiRequest<PdfVerificationResult>('/api/v1/public/verify/pdf', { method: 'POST', body: form, auth: false })
+  },
+
+  byDocument: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return apiRequest<DocumentCheckResult>('/api/v1/public/verify/document', { method: 'POST', body: form, auth: false })
   },
 }
 
