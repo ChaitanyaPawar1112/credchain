@@ -8,6 +8,7 @@ import { timeAgo } from '../../lib/format'
 import { json } from '../../test/fixtures'
 import { ApplyCollegePage } from '../ApplyCollegePage'
 import { InstitutionDetailPage } from './InstitutionDetailPage'
+import { InstitutionTrustPage } from './InstitutionTrustPage'
 import { InstitutionsPage } from './InstitutionsPage'
 import { VerificationLogPage } from './VerificationLogPage'
 import { describeBrowser } from './labels'
@@ -141,6 +142,65 @@ describe('Verification log', () => {
 
     await userEvent.click(screen.getByRole('tab', { name: /Fake/ }))
     expect(calls('result=FAKE').length).toBeGreaterThan(0)
+  })
+
+  it('shows a photo check with its risk score', async () => {
+    routes({
+      'GET /api/v1/admin/verifications': () => json({
+        totalChecks: 1, byResult: { VALID: 0, FAKE: 1, REVOKED: 0, EXPIRED: 0, NOT_FOUND: 0 },
+        checks: page([{ id: 'v2', checkedAt: new Date().toISOString(), method: 'DOCUMENT', result: 'FAKE', riskScore: 85,
+          blockchainChecked: true, certHash: null, certificateId: null, certificateNumber: null, studentName: null,
+          institutionId: null, userAgent: null }]),
+      }),
+    })
+    renderAt('/admin/verifications', <VerificationLogPage />)
+
+    expect(await screen.findByText('Photo or scan')).toBeInTheDocument()
+    expect(screen.getByText('Risk 85 / 100')).toHaveClass('text-red-700')
+  })
+})
+
+describe('College trust scores', () => {
+  const report = (computedAt: string | null, score: number | null) => ({
+    computedAt,
+    institutions: [
+      { institutionId: ID, name: 'Sahyadri Institute of Technology', code: 'SIT', trustScore: score,
+        level: score == null ? null : score >= 80 ? 'TRUSTED' : score >= 50 ? 'WATCH' : 'AT_RISK',
+        reasons: score == null ? [] : ['Unusual day on 2026-10-20: issued 40 certificates (normal is 2).'],
+        anomalyCount: score == null ? 0 : 1, modelUsed: score != null, computedAt },
+    ],
+  })
+
+  it('lists each college with its score, level and reasons, and "Run now" recomputes', async () => {
+    routes({
+      'GET /api/v1/admin/institution-trust': () => json(report(null, null)),
+      'POST /api/v1/admin/institution-trust/recompute': () => json(report('2026-10-28T10:00:00Z', 45)),
+    })
+    renderAt('/admin/trust', <InstitutionTrustPage />)
+
+    expect(await screen.findByText('Not analysed yet')).toBeInTheDocument()
+    expect(screen.getByText(/it has not run yet/)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: /Run now/ }))
+
+    expect(await screen.findByText('Trust scores updated.')).toBeInTheDocument()
+    const row = screen.getByRole('link', { name: 'Sahyadri Institute of Technology' }).closest('tr')!
+    expect(within(row).getByText('45')).toBeInTheDocument()
+    expect(within(row).getByText('At risk')).toBeInTheDocument()
+    expect(within(row).getByText(/issued 40 certificates/)).toBeInTheDocument()
+    expect(within(row).getByText(/AI model \+ rules · 1 unusual day/)).toBeInTheDocument()
+  })
+
+  it('says so when the fraud-detection service is down', async () => {
+    routes({
+      'GET /api/v1/admin/institution-trust': () => json(report(null, null)),
+      'POST /api/v1/admin/institution-trust/recompute': () => json({ status: 503, code: 'FRAUD_SERVICE_UNAVAILABLE',
+        detail: 'The fraud-detection service is not reachable right now.' }, 503),
+    })
+    renderAt('/admin/trust', <InstitutionTrustPage />)
+
+    await userEvent.click(await screen.findByRole('button', { name: /Run now/ }))
+    expect(await screen.findByText('The fraud-detection service is not reachable right now.')).toBeInTheDocument()
   })
 })
 

@@ -3,7 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { extractHash, type PdfVerificationResult, type VerificationResult } from '../../api/verify'
+import { extractHash, type DocumentCheckResult, type PdfVerificationResult, type VerificationResult } from '../../api/verify'
 import { json } from '../../test/fixtures'
 import { VerifyPage } from './VerifyPage'
 
@@ -159,6 +159,100 @@ describe('PDF upload', () => {
     const [url, init] = fetchMock.mock.calls[0]!
     expect(String(url)).toContain('/api/v1/public/verify/pdf')
     expect((init!.body as FormData).get('file')).toBeInstanceOf(File)
+  })
+})
+
+describe('Photo or scan', () => {
+  const photo = () => new File(['jpeg'], 'certificate.jpg', { type: 'image/jpeg' })
+
+  function analysis(overrides: Partial<DocumentCheckResult> = {}): DocumentCheckResult {
+    return {
+      kind: 'DOCUMENT_ANALYSIS', pdfCheck: null, riskScore: 85, riskLevel: 'HIGH',
+      summary: 'This copy shows strong signs of forgery. Do not accept it.',
+      fileType: 'image/jpeg', qrFound: true, certHash: HASH, textRead: true,
+      fieldChecks: [
+        { field: 'Student name', officialValue: 'Asha Patil', result: 'PASSED' },
+        { field: 'Grade / CGPA', officialValue: '8.50', result: 'FAILED' },
+      ],
+      signals: [
+        { code: 'EDITING_SOFTWARE', severity: 'HIGH', weight: 30, detail: 'The file was saved by Adobe Photoshop.' },
+        { code: 'FIELD_MISMATCH_GRADE_CGPA', severity: 'HIGH', weight: 30, detail: 'Grade / CGPA "8.50" is not printed on the copy.' },
+        { code: 'QR_FOUND', severity: 'INFO', weight: 0, detail: 'A CredChain QR code was found.' },
+      ],
+      record: valid(),
+      elaImage: 'iVBORw0KGgo=',
+      checkedAt: '2026-10-28T10:00:00Z',
+      ...overrides,
+    }
+  }
+
+  async function check(result: DocumentCheckResult, file = photo()) {
+    fetchMock.mockResolvedValue(json(result))
+    renderAt('/verify?tab=photo')
+    await userEvent.upload(screen.getByLabelText('Certificate photo or scan'), file)
+    await userEvent.click(screen.getByRole('button', { name: 'Check for forgery' }))
+  }
+
+  it('a forged photo shows the risk score, the details that do not match, the findings and the heat map', async () => {
+    await check(analysis())
+
+    expect(await screen.findByTestId('status-title')).toHaveTextContent('High risk: probably forged or edited')
+    expect(screen.getByTestId('risk-score')).toHaveTextContent('85 / 100')
+    expect(screen.getByRole('meter', { name: 'Risk score' })).toHaveAttribute('aria-valuenow', '85')
+    expect(screen.getByTestId('record-status')).toHaveTextContent('Genuine certificate')
+
+    const fields = screen.getByRole('list', { name: 'Printed details' })
+    expect(within(fields).getByText(/Grade \/ CGPA/).closest('li')).toHaveTextContent('Not found on the copy')
+    expect(within(fields).getByText(/Student name/).closest('li')).toHaveTextContent('Matches')
+
+    const findings = screen.getByRole('list', { name: 'Findings' })
+    expect(within(findings).getByText('The file was saved by Adobe Photoshop.').closest('li')).toHaveTextContent('+30')
+    expect(screen.getByRole('img', { name: /heat map/ })).toHaveAttribute('src', 'data:image/png;base64,iVBORw0KGgo=')
+    expect(screen.getByText(/Official record \(compare/)).toBeInTheDocument()
+
+    const [url, init] = fetchMock.mock.calls[0]!
+    expect(String(url)).toContain('/api/v1/public/verify/document')
+    expect((init!.body as FormData).get('file')).toBeInstanceOf(File)
+  })
+
+  it('says when no QR code could be read', async () => {
+    await check(analysis({ riskScore: 20, riskLevel: 'LOW', qrFound: false, certHash: null, record: null, fieldChecks: [],
+      signals: [], elaImage: null, summary: 'No QR code was found.' }))
+
+    expect(await screen.findByTestId('status-title')).toHaveTextContent('No signs of forgery found')
+    expect(screen.getByText(/No QR code could be read on this copy/)).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('a CredChain PDF gets the exact PDF check', async () => {
+    await check({
+      ...analysis(), kind: 'EXACT_PDF', riskScore: null, riskLevel: null, summary: null, fieldChecks: [], signals: [],
+      record: null, elaImage: null,
+      pdfCheck: {
+        status: 'VALID', message: 'This PDF is exactly the one the college issued.', fileSha256: 'a'.repeat(64),
+        checkedAt: '2026-10-28T10:00:00Z', checks: [{ name: 'File unchanged since it was issued', result: 'PASSED', detail: null }],
+        record: valid(),
+      },
+    }, new File(['%PDF-1.4'], 'certificate.pdf', { type: 'application/pdf' }))
+
+    expect(await screen.findByTestId('status-title')).toHaveTextContent('Genuine certificate')
+    expect(screen.getByText(/File unchanged since it was issued/)).toBeInTheDocument()
+  })
+
+  it('refuses other file types and files over 5 MB without calling the server', async () => {
+    renderAt('/verify?tab=photo')
+    const input = screen.getByLabelText('Certificate photo or scan')
+
+    await userEvent.upload(input, new File(['x'], 'notes.docx', { type: 'application/msword' }), { applyAccept: false })
+    expect(screen.getByRole('alert')).toHaveTextContent('Choose a JPEG, PNG, WebP or PDF file.')
+
+    const big = new File(['x'], 'huge.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(big, 'size', { value: 6 * 1024 * 1024 })
+    await userEvent.upload(input, big)
+    expect(screen.getByRole('alert')).toHaveTextContent('larger than 5 MB')
+
+    expect(screen.getByRole('button', { name: 'Check for forgery' })).toBeDisabled()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 
