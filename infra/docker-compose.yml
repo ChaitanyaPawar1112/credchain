@@ -36,5 +36,14 @@ services:
       - "8090:8000"   # http://localhost:8090/health and /docs
     restart: unless-stopped
 
+  mail:
+    # Mailpit: catches every email the backend sends (nothing reaches real inboxes). Read them in the browser.
+    image: axllent/mailpit:v1.21.8
+    container_name: credchain-mail
+    ports:
+      - "1025:1025"   # SMTP (used by the backend)
+      - "8025:8025"   # inbox in the browser: http://localhost:8025
+    restart: unless-stopped
+
 volumes:
   storage-data:

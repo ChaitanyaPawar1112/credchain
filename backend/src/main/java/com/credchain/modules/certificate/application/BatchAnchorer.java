@@ -3,6 +3,7 @@ package com.credchain.modules.certificate.application;
 import com.credchain.modules.blockchain.contract.CredentialRegistryClient;
 import com.credchain.modules.blockchain.infrastructure.BlockchainException;
 import com.credchain.modules.blockchain.infrastructure.TransactionRevertedException;
+import com.credchain.modules.certificate.domain.BatchAnchoredEvent;
 import com.credchain.modules.certificate.domain.BatchStatus;
 import com.credchain.modules.certificate.domain.Certificate;
 import com.credchain.modules.certificate.domain.CertificateBatch;
@@ -13,6 +14,7 @@ import com.credchain.modules.wallet.infrastructure.InstitutionWalletRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
@@ -36,6 +38,7 @@ public class BatchAnchorer {
     private final InstitutionWalletRepository walletRepository;
     private final InstitutionWalletService walletService;
     private final CertificateRepository certificateRepository;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public void process(CertificateBatch batch) {
@@ -82,5 +85,7 @@ public class BatchAnchorer {
         certificates.forEach(Certificate::markIssued);
         log.info("Batch {} ANCHORED in block {}: {} certificates issued",
                 batch.getId(), batch.getBlockNumber(), certificates.size());
+        events.publishEvent(new BatchAnchoredEvent(batch.getId(), batch.getInstitutionId(), batch.getTitle(),
+                certificates.size()));
     }
 }

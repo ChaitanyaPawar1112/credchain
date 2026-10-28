@@ -9,11 +9,13 @@ import com.credchain.modules.verification.api.dto.DocumentCheckResponse;
 import com.credchain.modules.verification.api.dto.PdfVerificationResponse;
 import com.credchain.modules.verification.api.dto.VerificationActivityResponse;
 import com.credchain.modules.verification.api.dto.VerificationResponse;
+import com.credchain.modules.verification.domain.CertificateCheckedEvent;
 import com.credchain.modules.verification.domain.VerificationLog;
 import com.credchain.modules.verification.domain.VerificationMethod;
 import com.credchain.modules.verification.domain.VerificationStatus;
 import com.credchain.modules.verification.infrastructure.VerificationLogRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -44,9 +46,12 @@ public class VerificationLogService {
     private final CertificateRepository certificateRepository;
     private final InstitutionAccessGuard accessGuard;
     private final TransactionTemplate newTransaction;
+    private final ApplicationEventPublisher events;
 
     public VerificationLogService(VerificationLogRepository logRepository, CertificateRepository certificateRepository,
-                                  InstitutionAccessGuard accessGuard, PlatformTransactionManager transactionManager) {
+                                  InstitutionAccessGuard accessGuard, PlatformTransactionManager transactionManager,
+                                  ApplicationEventPublisher events) {
+        this.events = events;
         this.logRepository = logRepository;
         this.certificateRepository = certificateRepository;
         this.accessGuard = accessGuard;
@@ -88,7 +93,7 @@ public class VerificationLogService {
      * linked = the official record the check was about, or null.
      * Saved in its own transaction; a failure is only logged, so the verifier still gets the answer.
      * The certificate is linked only when the check was about a real issued certificate
-     * (never for NOT_FOUND, so draft certificates stay hidden).
+     * (never for NOT_FOUND, so draft certificates stay hidden); only then is a CertificateCheckedEvent published.
      */
     private void record(Instant checkedAt, VerificationMethod method, VerificationStatus result,
                         boolean blockchainChecked, String certHash, VerificationResponse linked, String userAgent,
@@ -102,6 +107,7 @@ public class VerificationLogService {
                         certificate.map(Certificate::getId).orElse(null),
                         certificate.map(Certificate::getInstitutionId).orElse(null),
                         userAgent, riskScore));
+                certificate.ifPresent(c -> events.publishEvent(new CertificateCheckedEvent(c.getId(), method, result)));
             });
         } catch (RuntimeException e) {
             log.warn("Could not save verification log ({} {}): {}", method, result, e.getMessage());
