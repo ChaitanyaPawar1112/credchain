@@ -4,6 +4,7 @@ import { AppLayout } from './layouts/AppLayout'
 import { PublicLayout } from './layouts/PublicLayout'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { ApplyCollegePage } from './pages/ApplyCollegePage'
+import { AnalyticsPage } from './pages/AnalyticsPage'
 import { AuditLogPage } from './pages/AuditLogPage'
 import { DashboardHome } from './pages/DashboardHome'
 import { HomePage } from './pages/HomePage'
@@ -57,6 +58,7 @@ export function App() {
               <Route path="verifications" element={<VerificationLogPage />} />
               <Route path="trust" element={<InstitutionTrustPage />} />
               <Route path="audit" element={<AuditLogPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
             </>
           )}
           {role === 'INSTITUTION_ADMIN' && (
@@ -67,6 +69,7 @@ export function App() {
               <Route path="certificates" element={<CertificatesPage />} />
               <Route path="verifications" element={<VerificationLogPage scope="institution" />} />
               <Route path="audit" element={<AuditLogPage scope="institution" />} />
+              <Route path="analytics" element={<AnalyticsPage scope="institution" />} />
             </>
           )}
           {role === 'STUDENT' && <Route path="certificates" element={<MyCertificatesPage />} />}

@@ -163,3 +163,7 @@ app:
     enabled: ${MAIL_ENABLED:true}                     # false = emails are only written to the log
     from: ${MAIL_FROM:CredChain <no-reply@credchain.local>}
     web-base-url: ${WEB_BASE_URL:http://localhost:5173}   # links in emails open this website
+
+  # ---------- Analytics dashboard (Phase 8.3) ----------
+  analytics:
+    time-zone: ${APP_TIME_ZONE:Asia/Kolkata}          # the charts count days in this time zone
