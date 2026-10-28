@@ -13,6 +13,8 @@ export interface NavItem {
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   SUPER_ADMIN: [
     { label: 'Overview', to: '/admin', icon: 'home' },
+    { label: 'Analytics', to: '/admin/analytics', icon: 'chart',
+      description: 'Charts of certificates issued, checks and fake attempts over time.' },
     { label: 'College applications', to: '/admin/institutions', icon: 'building',
       description: 'Review, approve or reject colleges that want to issue certificates.' },
     { label: 'Users', to: '/admin/users', icon: 'users',
@@ -28,6 +30,8 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   ],
   INSTITUTION_ADMIN: [
     { label: 'Overview', to: '/institution', icon: 'home' },
+    { label: 'Analytics', to: '/institution/analytics', icon: 'chart',
+      description: 'Charts of your certificates and how often they are checked.' },
     { label: 'Students', to: '/institution/students', icon: 'student',
       description: 'Add students one by one or import a CSV file.' },
     { label: 'Batches', to: '/institution/batches', icon: 'layers',
