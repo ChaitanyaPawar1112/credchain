@@ -7,6 +7,7 @@ import type { Institution } from '../../api/admin'
 import { timeAgo } from '../../lib/format'
 import { json } from '../../test/fixtures'
 import { ApplyCollegePage } from '../ApplyCollegePage'
+import { AuditLogPage } from '../AuditLogPage'
 import { InstitutionDetailPage } from './InstitutionDetailPage'
 import { InstitutionTrustPage } from './InstitutionTrustPage'
 import { InstitutionsPage } from './InstitutionsPage'
@@ -157,6 +158,47 @@ describe('Verification log', () => {
 
     expect(await screen.findByText('Photo or scan')).toBeInTheDocument()
     expect(screen.getByText('Risk 85 / 100')).toHaveClass('text-red-700')
+  })
+})
+
+describe('Audit log', () => {
+  const entry = (overrides: Record<string, unknown> = {}) => ({
+    id: 'a1', occurredAt: new Date().toISOString(), action: 'INSTITUTION_APPROVED', category: 'INSTITUTION',
+    actorUserId: 'u1', actorEmail: 'root@credchain.test', actorRole: 'SUPER_ADMIN', institutionId: ID,
+    targetType: 'INSTITUTION', targetId: ID, summary: 'Approved Sahyadri Institute of Technology (SIT)',
+    ipAddress: '127.0.0.1', ...overrides,
+  })
+
+  it('lists who did what, and the category filter asks the server', async () => {
+    routes({
+      'GET /api/v1/admin/audit': () => json(page([
+        entry(),
+        entry({ id: 'a2', action: 'LOGIN_FAILED', category: 'ACCOUNT', actorUserId: null, actorEmail: 'nobody@x.test',
+          actorRole: null, summary: 'Failed login: no account with this email' }),
+      ])),
+    })
+    renderAt('/admin/audit', <AuditLogPage />)
+
+    const approved = (await screen.findByText('Approved Sahyadri Institute of Technology (SIT)')).closest('tr')!
+    expect(within(approved).getByText('Institution approved')).toBeInTheDocument()
+    expect(within(approved).getByText('Super admin')).toBeInTheDocument()
+    expect(within(approved).getByText('127.0.0.1')).toBeInTheDocument()
+
+    const failed = screen.getByText('Failed login: no account with this email').closest('tr')!
+    expect(within(failed).getByText('nobody@x.test')).toBeInTheDocument()
+    expect(within(failed).getByText('Not logged in')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Logins & accounts' }))
+    expect(calls('category=ACCOUNT').length).toBeGreaterThan(0)
+  })
+
+  it("a college admin reads their own college's log without the Colleges filter", async () => {
+    routes({ 'GET /api/v1/institution/audit': () => json(page([])) })
+    renderAt('/institution/audit', <AuditLogPage scope="institution" />)
+
+    expect(await screen.findByText('Nothing recorded yet')).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Colleges' })).not.toBeInTheDocument()
+    expect(calls('/api/v1/institution/audit').length).toBe(1)
   })
 })
 

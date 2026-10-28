@@ -1,5 +1,7 @@
 package com.credchain.modules.student.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.common.util.HashUtils;
@@ -43,6 +45,7 @@ public class StudentLinkService {
     private final InstitutionRepository institutionRepository;
     private final UserRepository userRepository;
     private final InstitutionAccessGuard accessGuard;
+    private final AuditService audit;
     private final Clock clock;
 
     // ---------- Institution side ----------
@@ -59,6 +62,8 @@ public class StudentLinkService {
         student.issueClaimCode(hash(code), expiresAt);   // 409 if already linked
 
         log.info("Claim code issued for student {} (expires {})", studentId, expiresAt);   // never log the code
+        audit.record(AuditAction.CLAIM_CODE_ISSUED, adminUserId, institutionId, "STUDENT", student.getId(),
+                "Gave a claim code to " + student.getFullName() + " (" + student.getEnrollmentNo() + ")");
         return new ClaimCodeResponse(student.getId(), student.getEnrollmentNo(), format(code), expiresAt,
                 "Give this code to the student privately. It works once, expires in 7 days, "
                         + "and generating a new code cancels this one.");
@@ -103,6 +108,8 @@ public class StudentLinkService {
         }
 
         log.info("User {} linked to student record {}", userId, student.getId());
+        audit.record(AuditAction.STUDENT_ACCOUNT_LINKED, userId, institution.getId(), "STUDENT", student.getId(),
+                user.getEmail() + " connected their account to " + student.getFullName() + " (" + student.getEnrollmentNo() + ")");
         return MyStudentProfileResponse.of(student, institution);
     }
 

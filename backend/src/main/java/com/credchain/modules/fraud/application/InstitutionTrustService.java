@@ -1,5 +1,7 @@
 package com.credchain.modules.fraud.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.fraud.api.dto.InstitutionTrustResponse;
@@ -46,11 +48,21 @@ public class InstitutionTrustService {
     private final InstitutionTrustScoreRepository scoreRepository;
     private final InstitutionRepository institutionRepository;
     private final InstitutionTrustProperties properties;
+    private final AuditService audit;
     private final Clock clock;
 
-    /** Runs the analysis now and saves the result. 503 FRAUD_SERVICE_UNAVAILABLE when the service is down. */
+    /** The nightly run. */
     @Transactional
     public InstitutionTrustResponse recompute() {
+        return recompute(null);
+    }
+
+    /**
+     * Runs the analysis now and saves the result. 503 FRAUD_SERVICE_UNAVAILABLE when the service is down.
+     * requestedBy = the super admin who clicked "Run now" (audited); null for the nightly job.
+     */
+    @Transactional
+    public InstitutionTrustResponse recompute(UUID requestedBy) {
         ZoneId zone = ZoneId.of(properties.timeZone());
         Instant now = clock.instant();
         InstitutionActivity activity = activityQuery.load(LocalDate.ofInstant(now, zone), properties.historyDays(), zone);
@@ -76,6 +88,10 @@ public class InstitutionTrustService {
         }
         log.info("Institution trust analysis: {} colleges, {} days of activity, model used: {}",
                 analysis.institutions().size(), activity.days().size(), analysis.modelUsed());
+        if (requestedBy != null) {
+            audit.record(AuditAction.TRUST_SCORES_RECOMPUTED, requestedBy, null, null, null,
+                    "Recalculated the trust scores of " + analysis.institutions().size() + " colleges");
+        }
         return list();
     }
 

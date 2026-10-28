@@ -1,5 +1,7 @@
 package com.credchain.modules.certificate.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.api.PageResponse;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
@@ -28,6 +30,7 @@ public class CertificateRevocationService {
 
     private final InstitutionAccessGuard accessGuard;
     private final CertificateRepository certificateRepository;
+    private final AuditService audit;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -53,6 +56,9 @@ public class CertificateRevocationService {
         certificate.requestRevocation(request.reason(), request.note(), clock.instant());   // 409 unless ISSUED
         log.warn("Revocation of certificate {} ({}) requested by {}: {}",
                 certificate.getCertificateNumber(), certificate.getId(), adminUserId, request.reason());
+        audit.record(AuditAction.CERTIFICATE_REVOKED, adminUserId, certificate.getInstitutionId(), "CERTIFICATE",
+                certificate.getId(), "Revoked certificate " + certificate.getCertificateNumber() + " of "
+                        + certificate.getStudentName() + " (reason: " + request.reason() + ")");
         return CertificateResponse.from(certificate);
     }
 
