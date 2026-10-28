@@ -1,6 +1,7 @@
-import type { InstitutionStatus, InstitutionType, UserStatus, WalletStatus } from '../../api/admin'
+import type { InstitutionStatus, InstitutionType, UserStatus, VerificationEntry, WalletStatus } from '../../api/admin'
 import type { VerificationStatus } from '../../api/verify'
 import type { BadgeTone } from '../../components/Badge'
+import type { IconName } from '../../components/Icon'
 
 export const INSTITUTION_STATUS: Record<InstitutionStatus, { label: string; tone: BadgeTone }> = {
   PENDING: { label: 'Waiting for review', tone: 'amber' },
@@ -38,6 +39,15 @@ export const RESULT_LOOK: Record<VerificationStatus, { label: string; tone: Badg
   NOT_FOUND: { label: 'Not found', tone: 'slate' },
   FAKE: { label: 'Fake', tone: 'red' },
 }
+
+export const METHOD_LOOK: Record<VerificationEntry['method'], { label: string; icon: IconName }> = {
+  HASH: { label: 'QR link / hash', icon: 'qr' },
+  PDF: { label: 'PDF upload', icon: 'file' },
+  DOCUMENT: { label: 'Photo or scan', icon: 'camera' },
+}
+
+/** Same bands as the fraud-detection service: medium from 25, high from 55. */
+export const riskColor = (score: number) => (score >= 55 ? 'text-red-700' : score >= 25 ? 'text-amber-700' : 'text-emerald-700')
 
 export const ROLE_TONE = {
   SUPER_ADMIN: 'purple',

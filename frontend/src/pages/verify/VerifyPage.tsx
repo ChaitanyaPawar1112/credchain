@@ -1,19 +1,20 @@
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useRef, useState, type DragEvent, type FormEvent } from 'react'
+import { useMutation, useQuery, type UseMutationResult } from '@tanstack/react-query'
+import { useRef, useState, type DragEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { MAX_PDF_BYTES, extractHash, verifyApi } from '../../api/verify'
+import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, MAX_PDF_BYTES, extractHash, verifyApi } from '../../api/verify'
 import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
-import { Icon } from '../../components/Icon'
+import { Icon, type IconName } from '../../components/Icon'
 import { Spinner } from '../../components/Spinner'
 import { errorMessage } from '../../components/errors'
-import { CertificateRecord, ChainNote, PdfChecks, StatusBanner } from './ResultViews'
+import { DocumentResult } from './DocumentResult'
+import { CertificateRecord, ChainNote, PdfResult, StatusBanner } from './ResultViews'
 
-type Mode = 'hash' | 'pdf'
+type Mode = 'hash' | 'pdf' | 'photo'
 
 /**
  * Public certificate check, no login. /verify/{hash} (the QR code on every PDF) shows the result for that hash;
- * /verify shows the form: paste a hash or upload the PDF.
+ * /verify shows the form: paste a hash, upload the PDF, or upload a photo or scan (AI forgery check).
  */
 export function VerifyPage() {
   const { certHash } = useParams()
@@ -87,25 +88,34 @@ function AgainLink() {
   )
 }
 
+const TABS: { mode: Mode; label: string; icon: IconName }[] = [
+  { mode: 'hash', label: 'Certificate hash', icon: 'hash' },
+  { mode: 'pdf', label: 'Upload PDF', icon: 'upload' },
+  { mode: 'photo', label: 'Photo or scan', icon: 'camera' },
+]
+
 function VerifyForm() {
   const [params] = useSearchParams()
-  const [mode, setMode] = useState<Mode>(params.get('tab') === 'pdf' ? 'pdf' : 'hash')
-  const tab = (value: Mode, label: string, icon: 'hash' | 'upload') => (
-    <button type="button" role="tab" aria-selected={mode === value} onClick={() => setMode(value)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-              mode === value ? 'bg-navy-700 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
-      <Icon name={icon} className="h-4 w-4" /> {label}
-    </button>
-  )
+  const requested = params.get('tab')
+  const [mode, setMode] = useState<Mode>(TABS.find((t) => t.mode === requested)?.mode ?? 'hash')
 
   return (
     <div className="space-y-6">
       <div className="rounded-3xl bg-white p-6 shadow-xl shadow-navy-900/5 ring-1 ring-slate-200 sm:p-8">
         <div role="tablist" className="flex gap-1 rounded-2xl bg-slate-100 p-1">
-          {tab('hash', 'Certificate hash', 'hash')}
-          {tab('pdf', 'Upload PDF', 'upload')}
+          {TABS.map((t) => (
+            <button key={t.mode} type="button" role="tab" aria-selected={mode === t.mode} onClick={() => setMode(t.mode)}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-sm font-semibold transition sm:px-4 ${
+                      mode === t.mode ? 'bg-navy-700 text-white shadow' : 'text-slate-600 hover:bg-slate-100'}`}>
+              <Icon name={t.icon} className="hidden h-4 w-4 sm:block" /> {t.label}
+            </button>
+          ))}
         </div>
-        <div className="mt-6">{mode === 'hash' ? <HashForm /> : <PdfUpload />}</div>
+        <div className="mt-6">
+          {mode === 'hash' && <HashForm />}
+          {mode === 'pdf' && <PdfUpload />}
+          {mode === 'photo' && <PhotoUpload />}
+        </div>
       </div>
       <Tips />
     </div>
@@ -139,26 +149,83 @@ function HashForm() {
 }
 
 function PdfUpload() {
+  const upload = useMutation({ mutationFn: verifyApi.byPdf })
+  return (
+    <FileCheck
+      upload={upload}
+      inputLabel="Certificate PDF"
+      accept="application/pdf,.pdf"
+      prompt="Drop the certificate PDF here, or click to choose it"
+      hint="PDF only, up to 2 MB"
+      buttonLabel="Verify PDF"
+      busyLabel="Checking the PDF…"
+      againLabel="Check another PDF"
+      validate={(picked) => {
+        const isPdf = picked.type === 'application/pdf' || picked.name.toLowerCase().endsWith('.pdf')
+        if (!isPdf) return 'Choose a PDF file.'
+        if (picked.size > MAX_PDF_BYTES) return 'This file is larger than 2 MB. CredChain certificates are much smaller.'
+        return null
+      }}
+      render={(result) => <PdfResult result={result} />}
+    />
+  )
+}
+
+/** A photo, scan or forwarded copy: the AI forgery check (QR code, metadata, printed text, edit heat map). */
+function PhotoUpload() {
+  const upload = useMutation({ mutationFn: verifyApi.byDocument })
+  return (
+    <FileCheck
+      upload={upload}
+      inputLabel="Certificate photo or scan"
+      accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+      prompt="Drop a photo or scan of the certificate here, or click to choose it"
+      hint="JPEG, PNG, WebP or PDF, up to 5 MB. Make sure the QR code is sharp."
+      buttonLabel="Check for forgery"
+      busyLabel="Analysing the document…"
+      againLabel="Check another document"
+      validate={(picked) => {
+        const known = DOCUMENT_TYPES.includes(picked.type) || /\.(jpe?g|png|webp|pdf)$/i.test(picked.name)
+        if (!known) return 'Choose a JPEG, PNG, WebP or PDF file.'
+        if (picked.size > MAX_DOCUMENT_BYTES) return 'This file is larger than 5 MB. Take the photo again at a lower size.'
+        return null
+      }}
+      render={(result) => <DocumentResult result={result} />}
+      note="The file is only checked, not stored. A photo can never be proven genuine: only the original PDF or the QR link can."
+    />
+  )
+}
+
+interface FileCheckProps<T> {
+  upload: UseMutationResult<T, Error, File>
+  inputLabel: string
+  accept: string
+  prompt: string
+  hint: string
+  buttonLabel: string
+  busyLabel: string
+  againLabel: string
+  /** Returns a message when the file cannot be sent, else null. */
+  validate: (file: File) => string | null
+  render: (result: T) => ReactNode
+  note?: string
+}
+
+/** Drop zone + button for one uploaded file; shows the result once the server answers. */
+function FileCheck<T>({ upload, inputLabel, accept, prompt, hint, buttonLabel, busyLabel, againLabel, validate, render,
+                        note = 'The file is only checked, not stored.' }: FileCheckProps<T>) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
-  const upload = useMutation({ mutationFn: verifyApi.byPdf })
 
   const choose = (picked: File | undefined) => {
     upload.reset()
     setProblem(null)
     if (!picked) return
-    const isPdf = picked.type === 'application/pdf' || picked.name.toLowerCase().endsWith('.pdf')
-    if (!isPdf) {
-      setFile(null)
-      setProblem('Choose a PDF file.')
-    } else if (picked.size > MAX_PDF_BYTES) {
-      setFile(null)
-      setProblem('This file is larger than 2 MB. CredChain certificates are much smaller.')
-    } else {
-      setFile(picked)
-    }
+    const message = validate(picked)
+    setProblem(message)
+    setFile(message ? null : picked)
   }
 
   const onDrop = (event: DragEvent) => {
@@ -174,19 +241,11 @@ function PdfUpload() {
   }
 
   if (upload.data) {
-    const result = upload.data
     return (
       <div className="space-y-6">
-        <StatusBanner status={result.status} message={result.message}>
-          {result.record && <ChainNote checked={result.record.blockchainChecked} checkedAt={result.checkedAt} />}
-        </StatusBanner>
-        <PdfChecks result={result} />
-        {result.record && (
-          <CertificateRecord result={result.record}
-                             heading={result.status === 'FAKE' ? 'Official record (compare with the PDF you have)' : 'Certificate details'} />
-        )}
+        {render(upload.data)}
         <div className="flex justify-center">
-          <Button variant="secondary" onClick={startOver}><Icon name="upload" className="h-4 w-4" /> Check another PDF</Button>
+          <Button variant="secondary" onClick={startOver}><Icon name="upload" className="h-4 w-4" /> {againLabel}</Button>
         </div>
       </div>
     )
@@ -211,11 +270,11 @@ function PdfUpload() {
           </>
         ) : (
           <>
-            <span className="mt-4 font-semibold text-slate-900">Drop the certificate PDF here, or click to choose it</span>
-            <span className="text-sm text-slate-500">PDF only, up to 2 MB</span>
+            <span className="mt-4 font-semibold text-slate-900">{prompt}</span>
+            <span className="text-sm text-slate-500">{hint}</span>
           </>
         )}
-        <input ref={inputRef} type="file" accept="application/pdf,.pdf" className="sr-only" aria-label="Certificate PDF"
+        <input ref={inputRef} type="file" accept={accept} className="sr-only" aria-label={inputLabel}
                onChange={(e) => choose(e.target.files?.[0])} />
       </label>
 
@@ -223,9 +282,9 @@ function PdfUpload() {
       {upload.isError && <Alert tone="error">{errorMessage(upload.error)}</Alert>}
 
       <Button className="w-full py-3" disabled={!file} loading={upload.isPending} onClick={() => file && upload.mutate(file)}>
-        {upload.isPending ? 'Checking the PDF…' : 'Verify PDF'}
+        {upload.isPending ? busyLabel : buttonLabel}
       </Button>
-      <p className="text-xs text-slate-500">The file is only checked, not stored.</p>
+      <p className="text-xs text-slate-500">{note}</p>
     </div>
   )
 }
@@ -235,9 +294,10 @@ function Tips() {
     { icon: 'qr' as const, title: 'Scan the QR code', text: 'Every CredChain PDF has one. It opens the result for that certificate.' },
     { icon: 'hash' as const, title: 'Paste the hash', text: 'The long code starting with 0x at the bottom of the certificate.' },
     { icon: 'upload' as const, title: 'Upload the PDF', text: 'Catches PDFs that were edited after the college issued them.' },
+    { icon: 'camera' as const, title: 'Got only a photo?', text: 'Upload it: the AI reads the QR code and the text and looks for signs of editing.' },
   ]
   return (
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {tips.map((t) => (
         <div key={t.title} className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gold-100 text-gold-600">

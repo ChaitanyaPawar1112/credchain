@@ -24,5 +24,17 @@ services:
       start_period: 20s
     restart: unless-stopped
 
+  fraud:
+    # AI fraud-detection service (Python). Built from ../fraud-service; only the backend calls it.
+    build: ../fraud-service
+    image: credchain-fraud:1.1.0
+    container_name: credchain-fraud
+    environment:
+      # Shared key the backend sends in X-Api-Key (set it in infra/.env; empty = no key, local testing only)
+      FRAUD_API_KEY: ${FRAUD_API_KEY:-}
+    ports:
+      - "8090:8000"   # http://localhost:8090/health and /docs
+    restart: unless-stopped
+
 volumes:
   storage-data:

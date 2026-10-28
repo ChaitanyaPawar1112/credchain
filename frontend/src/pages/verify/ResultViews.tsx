@@ -160,7 +160,7 @@ export function ChainNote({ checked, checkedAt }: { checked: boolean; checkedAt:
   )
 }
 
-const CHECK_LOOK: Record<PdfCheck['result'], { icon: 'checkCircle' | 'xCircle' | 'minusCircle'; color: string; label: string }> = {
+export const CHECK_LOOK: Record<PdfCheck['result'], { icon: 'checkCircle' | 'xCircle' | 'minusCircle'; color: string; label: string }> = {
   PASSED: { icon: 'checkCircle', color: 'text-emerald-600', label: 'Passed' },
   FAILED: { icon: 'xCircle', color: 'text-red-600', label: 'Failed' },
   SKIPPED: { icon: 'minusCircle', color: 'text-slate-400', label: 'Skipped' },
@@ -192,5 +192,21 @@ export function PdfChecks({ result }: { result: PdfVerificationResult }) {
       </ol>
       <p className="mt-6 break-all text-xs text-slate-400">File fingerprint (SHA-256): <span className="font-mono">{result.fileSha256}</span></p>
     </section>
+  )
+}
+
+/** Everything shown after a PDF upload: the answer, each step, and the official record to compare. */
+export function PdfResult({ result }: { result: PdfVerificationResult }) {
+  return (
+    <div className="space-y-6">
+      <StatusBanner status={result.status} message={result.message}>
+        {result.record && <ChainNote checked={result.record.blockchainChecked} checkedAt={result.checkedAt} />}
+      </StatusBanner>
+      <PdfChecks result={result} />
+      {result.record && (
+        <CertificateRecord result={result.record}
+                           heading={result.status === 'FAKE' ? 'Official record (compare with the PDF you have)' : 'Certificate details'} />
+      )}
+    </div>
   )
 }

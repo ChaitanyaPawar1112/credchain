@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { InstitutionDetailPage } from './pages/admin/InstitutionDetailPage'
+import { InstitutionTrustPage } from './pages/admin/InstitutionTrustPage'
 import { InstitutionsPage } from './pages/admin/InstitutionsPage'
 import { ReconciliationPage } from './pages/admin/ReconciliationPage'
 import { UsersPage } from './pages/admin/UsersPage'
@@ -53,6 +54,7 @@ export function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="reconciliation" element={<ReconciliationPage />} />
               <Route path="verifications" element={<VerificationLogPage />} />
+              <Route path="trust" element={<InstitutionTrustPage />} />
             </>
           )}
           {role === 'INSTITUTION_ADMIN' && (

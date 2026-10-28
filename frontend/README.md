@@ -5,9 +5,9 @@ One React app serves all four kinds of users, plus a public page anyone can use 
 
 | Who | Where | What they do |
 |-----|-------|--------------|
-| Anyone (no login) | `/verify` | Check a certificate by QR link, hash, or by uploading the PDF |
+| Anyone (no login) | `/verify` | Check a certificate by QR link, hash, by uploading the PDF, or by uploading a photo or scan (AI forgery check) |
 | College (no login) | `/apply` | Apply to issue certificates on CredChain |
-| Super admin | `/admin` | Approve or reject colleges, see users, compare the database with the blockchain, read the verification log |
+| Super admin | `/admin` | Approve or reject colleges, see users, compare the database with the blockchain, read the verification log, see each college's AI trust score |
 | College admin | `/institution` | Add or import students, give claim codes, create batches, issue them on the blockchain, download PDFs, revoke |
 | Student | `/student` | Connect their account with a claim code, then download and share their certificates |
 | Employer / verifier | `/verifier` | A shortcut to the verify page after logging in |
@@ -20,12 +20,13 @@ You need **Node.js 20.19+ or 22.12+** and the CredChain backend running on `http
 
 1. Start what the backend needs:
    - PostgreSQL (your local installation).
-   - Docker Desktop, then the file storage used for certificate PDFs:
+   - Docker Desktop, then the file storage used for certificate PDFs and the AI fraud-detection service:
      ```
      cd infra
      docker compose up -d
      ```
-     This reads `infra/.env` (git-ignored, never commit it).
+     This reads `infra/.env` (git-ignored, never commit it). Without the fraud service the photo check and
+     the trust scores say the service is not available; everything else works.
 2. Run the backend (in IntelliJ, or `./mvnw spring-boot:run` in `backend`) and wait until it says it started.
 3. Start the frontend:
    ```
@@ -39,7 +40,7 @@ You need **Node.js 20.19+ or 22.12+** and the CredChain backend running on `http
 | Command | What it does |
 |---------|--------------|
 | `npm run dev` | Development server with live reload on port 5173 |
-| `npm test` | All tests, once |
+| `npm test` | All tests, once. On a slow Windows laptop use `npx vitest run --pool=threads --maxWorkers=1` if it says "Timeout waiting for worker" |
 | `npm run typecheck` | TypeScript check only |
 | `npm run build` | Typecheck, then a production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
@@ -70,6 +71,14 @@ The links inside QR codes and share buttons come from the backend's `VERIFICATIO
    **My certificates** to download or **Share** (link, QR code, WhatsApp, LinkedIn, email).
 6. **Anyone.** Open the shared link, or go to **Verify** and upload the PDF. Change one character in the PDF and upload
    it again: the result is *not a genuine CredChain certificate*.
+7. **Photo or scan.** On **Verify**, open the **Photo or scan** tab and upload a screenshot or phone photo of a
+   certificate (JPEG, PNG, WebP or PDF, up to 5 MB). You get a risk score (low, medium, high), what the QR code points
+   to, each printed detail compared with the official record, every finding with its points, and for JPEG photos an
+   edit heat map (Error Level Analysis). Change the CGPA in Paint and check it again: that detail shows
+   *Not found on the copy* and the score goes up.
+8. **Trust scores.** As super admin, open **College trust scores** and click **Run now** (it also runs every night at
+   02:30). Each college gets 0 to 100 (*Trusted* 80+, *Watch* 50+, *At risk* below 50) with the reasons. The
+   **Verification log** shows photo checks as *Photo or scan* with their risk score.
 
 ## Good to know
 
@@ -80,6 +89,8 @@ The links inside QR codes and share buttons come from the backend's `VERIFICATIO
 - **Logins.** The access token is kept in memory only; the refresh token is kept in the browser so a reload keeps you
   logged in. Changing your password logs you out everywhere.
 - **Privacy.** The public verify page never shows a student's email, the certificate's salt or a college's internal notes.
+- **A photo is never proof.** The photo check only says how suspicious a copy looks. Only the QR link, the hash or the
+  original PDF prove a certificate is genuine. See `fraud-service/README.md` for how the score is made.
 
 ## Code layout
 
@@ -90,7 +101,7 @@ src/
   components/   shared building blocks: Button, TextField, Modal, Panel, Badge, StatTile, ...
   layouts/      public layout, dashboard layout with the sidebar, navigation per role
   pages/
-    verify/       public verify page
+    verify/       public verify page (hash, PDF, photo or scan)
     admin/        super admin pages
     institution/  college admin pages
     student/      student pages

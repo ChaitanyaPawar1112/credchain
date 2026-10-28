@@ -44,8 +44,8 @@ spring:
   # ---------- File uploads ----------
   servlet:
     multipart:
-      max-file-size: 2MB
-      max-request-size: 2MB
+      max-file-size: 5MB          # photos of certificates (Phase 7); the PDF check keeps its own 2 MB limit
+      max-request-size: 5MB
 
 server:
   port: ${SERVER_PORT:8080}
@@ -128,3 +128,15 @@ app:
     lookups-per-minute: 30       # checks by hash / QR link
     uploads-per-minute: 10       # PDF uploads
     trust-forwarded-for: ${TRUST_FORWARDED_FOR:false}   # true only behind our own nginx / load balancer
+
+  # ---------- AI fraud-detection service (Phase 7) ----------
+  fraud:
+    enabled: ${FRAUD_ENABLED:true}                    # false = photo / scan checks answer "not available"
+    base-url: ${FRAUD_SERVICE_URL:http://localhost:8090}   # docker compose service "fraud"
+    api-key: ${FRAUD_API_KEY:}                        # secret, shared with the service (infra/.env)
+    connect-timeout: 3s
+    read-timeout: 60s                                 # OCR of a large photo can take a while
+    trust:
+      time-zone: ${APP_TIME_ZONE:Asia/Kolkata}         # days and "midnight to 6 a.m." are counted here
+      history-days: 90                                  # the model learns "normal" from this many days
+      cron: ${FRAUD_TRUST_CRON:0 30 2 * * *}            # daily trust analysis at 02:30
