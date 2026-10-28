@@ -47,6 +47,20 @@ spring:
       max-file-size: 5MB          # photos of certificates (Phase 7); the PDF check keeps its own 2 MB limit
       max-request-size: 5MB
 
+  # ---------- Email (Phase 8.2) ----------
+  # Locally every email is caught by Mailpit (docker compose): read them at http://localhost:8025
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}                       # secret for a real SMTP server; empty for Mailpit
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
 server:
   port: ${SERVER_PORT:8080}
   shutdown: graceful
@@ -60,6 +74,9 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    mail:
+      enabled: false              # a mail server being down must not mark the backend unhealthy
 
 # ---------- CredChain application settings ----------
 app:
@@ -140,3 +157,9 @@ app:
       time-zone: ${APP_TIME_ZONE:Asia/Kolkata}         # days and "midnight to 6 a.m." are counted here
       history-days: 90                                  # the model learns "normal" from this many days
       cron: ${FRAUD_TRUST_CRON:0 30 2 * * *}            # daily trust analysis at 02:30
+
+  # ---------- Notifications and email (Phase 8.2) ----------
+  mail:
+    enabled: ${MAIL_ENABLED:true}                     # false = emails are only written to the log
+    from: ${MAIL_FROM:CredChain <no-reply@credchain.local>}
+    web-base-url: ${WEB_BASE_URL:http://localhost:5173}   # links in emails open this website

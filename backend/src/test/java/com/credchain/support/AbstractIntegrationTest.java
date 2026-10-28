@@ -29,8 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 // InMemoryObjectStorage stands in for RustFS/S3 (app.storage.enabled=false in tests),
-// StubFraudServiceConfig for the Python fraud-detection service
-@Import({InMemoryObjectStorage.class, StubFraudServiceConfig.class})
+// StubFraudServiceConfig for the Python fraud-detection service, RecordingEmailSender for the mail server
+@Import({InMemoryObjectStorage.class, StubFraudServiceConfig.class, RecordingEmailSender.Config.class})
 public abstract class AbstractIntegrationTest {
 
     protected static final String STRONG_PASSWORD = "Str0ng@Pass";
@@ -46,11 +46,16 @@ public abstract class AbstractIntegrationTest {
     protected PasswordEncoder passwordEncoder;
 
     @Autowired
+    protected RecordingEmailSender emails;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void cleanDatabase() {
-        jdbcTemplate.execute("TRUNCATE TABLE refresh_tokens, students, users, institutions, audit_events CASCADE");
+        jdbcTemplate.execute(
+                "TRUNCATE TABLE refresh_tokens, students, users, institutions, audit_events, notifications CASCADE");
+        emails.clear();
     }
 
     // ---------- Phase 1 request helpers ----------

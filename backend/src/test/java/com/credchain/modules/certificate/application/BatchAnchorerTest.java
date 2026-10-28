@@ -3,6 +3,7 @@ package com.credchain.modules.certificate.application;
 import com.credchain.modules.blockchain.contract.CredentialRegistryClient;
 import com.credchain.modules.blockchain.infrastructure.BlockchainException;
 import com.credchain.modules.blockchain.infrastructure.TransactionRevertedException;
+import com.credchain.modules.certificate.domain.BatchAnchoredEvent;
 import com.credchain.modules.certificate.domain.BatchStatus;
 import com.credchain.modules.certificate.domain.Certificate;
 import com.credchain.modules.certificate.domain.CertificateBatch;
@@ -14,6 +15,7 @@ import com.credchain.modules.wallet.domain.InstitutionWallet;
 import com.credchain.modules.wallet.infrastructure.InstitutionWalletRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.ApplicationEventPublisher;
 import org.web3j.crypto.Credentials;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 
@@ -34,6 +36,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @DisplayName("BatchAnchorer")
@@ -49,8 +52,9 @@ class BatchAnchorerTest {
     private final InstitutionWalletRepository walletRepository = mock(InstitutionWalletRepository.class);
     private final InstitutionWalletService walletService = mock(InstitutionWalletService.class);
     private final CertificateRepository certificateRepository = mock(CertificateRepository.class);
+    private final ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
     private final BatchAnchorer anchorer = new BatchAnchorer(registry, walletRepository, walletService,
-            certificateRepository, Clock.fixed(NOW, ZoneOffset.UTC));
+            certificateRepository, events, Clock.fixed(NOW, ZoneOffset.UTC));
 
     @Test
     @DisplayName("queued batch: signed by the institution wallet, confirmed, certificates ISSUED")
@@ -68,6 +72,7 @@ class BatchAnchorerTest {
         assertThat(batch.getTxHash()).isEqualTo(TX);
         assertThat(batch.getBlockNumber()).isEqualTo(123L);
         assertThat(certificate.getStatus()).isEqualTo(CertificateStatus.ISSUED);
+        verify(events).publishEvent(new BatchAnchoredEvent(batch.getId(), INSTITUTION, batch.getTitle(), 1));
     }
 
     @Test
@@ -96,6 +101,7 @@ class BatchAnchorerTest {
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.SUBMITTED);
         assertThat(batch.getTxHash()).isEqualTo(TX);
         assertThat(batch.getNextAttemptAt()).isEqualTo(NOW.plusSeconds(30));
+        verifyNoInteractions(events);   // nobody is told before the batch is really on the blockchain
     }
 
     @Test
