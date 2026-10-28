@@ -13,6 +13,8 @@ export interface NavItem {
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   SUPER_ADMIN: [
     { label: 'Overview', to: '/admin', icon: 'home' },
+    { label: 'Analytics', to: '/admin/analytics', icon: 'chart',
+      description: 'Charts of certificates issued, checks and fake attempts over time.' },
     { label: 'College applications', to: '/admin/institutions', icon: 'building',
       description: 'Review, approve or reject colleges that want to issue certificates.' },
     { label: 'Users', to: '/admin/users', icon: 'users',
@@ -23,9 +25,13 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       description: 'Every public check, including FAKE attempts and photo checks.' },
     { label: 'College trust scores', to: '/admin/trust', icon: 'gauge',
       description: 'AI score per college: unusual activity, revocations and forged copies.' },
+    { label: 'Audit log', to: '/admin/audit', icon: 'history',
+      description: 'Who did what and when, across the whole platform.' },
   ],
   INSTITUTION_ADMIN: [
     { label: 'Overview', to: '/institution', icon: 'home' },
+    { label: 'Analytics', to: '/institution/analytics', icon: 'chart',
+      description: 'Charts of your certificates and how often they are checked.' },
     { label: 'Students', to: '/institution/students', icon: 'student',
       description: 'Add students one by one or import a CSV file.' },
     { label: 'Batches', to: '/institution/batches', icon: 'layers',
@@ -34,11 +40,15 @@ export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
       description: 'Download PDFs, check status and revoke if needed.' },
     { label: 'Verification activity', to: '/institution/verifications', icon: 'activity',
       description: 'See when employers check your certificates.' },
+    { label: 'Audit log', to: '/institution/audit', icon: 'history',
+      description: "Who did what in your college's account." },
   ],
   STUDENT: [
     { label: 'Overview', to: '/student', icon: 'home' },
     { label: 'My certificates', to: '/student/certificates', icon: 'certificate',
       description: 'Claim, download and share the certificates your college issued.' },
+    { label: 'Share links', to: '/student/share-links', icon: 'external',
+      description: 'See how often your shared links were opened, and turn them off.' },
   ],
   VERIFIER: [
     { label: 'Overview', to: '/verifier', icon: 'home' },

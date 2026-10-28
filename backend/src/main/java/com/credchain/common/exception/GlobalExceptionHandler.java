@@ -3,6 +3,7 @@ package com.credchain.common.exception;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -56,6 +57,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorCode code = ErrorCode.ACCESS_DENIED;
         return ResponseEntity.status(code.getStatus())
                 .body(build(code, code.getDefaultMessage(), request.getRequestURI()));
+    }
+
+    /** @Min / @Max etc. on query parameters (@Validated controllers), e.g. ?size=500: which parameter failed and why. */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex,
+                                                                   HttpServletRequest request) {
+        Map<String, String> errors = new LinkedHashMap<>();
+        ex.getConstraintViolations().forEach(v -> {
+            String path = v.getPropertyPath().toString();
+            errors.putIfAbsent(path.substring(path.lastIndexOf('.') + 1), v.getMessage());   // "platform.days" -> "days"
+        });
+        ErrorCode code = ErrorCode.VALIDATION_FAILED;
+        ProblemDetail body = build(code, code.getDefaultMessage(), request.getRequestURI());
+        body.setProperty("errors", errors);
+        return ResponseEntity.status(code.getStatus()).body(body);
     }
 
     /** Anything unexpected: log full details, but never leak them to the client. */

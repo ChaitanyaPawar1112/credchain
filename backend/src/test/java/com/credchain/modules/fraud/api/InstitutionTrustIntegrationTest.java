@@ -127,6 +127,32 @@ class InstitutionTrustIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("a college that falls to At risk: the super admin is told once, not again on the next run")
+    void atRiskNotifiesSuperAdmin() throws Exception {
+        String admin = onboardInstitution("TRUST-RISK", "registrar@trustrisk.test");
+        String superToken = superAdminToken();
+        fraudService.respondToTrustWith(activity -> new InstitutionTrustAnalysis("IsolationForest", true,
+                activity.days().size(), activity.institutions().stream()
+                .map(i -> new InstitutionTrustAnalysis.Trust(i.institutionId(), i.name(), 30, "AT_RISK",
+                        List.of("Many forged copies were checked."), List.of()))
+                .toList()));
+
+        mockMvc.perform(post(TRUST + "/recompute").header(HttpHeaders.AUTHORIZATION, bearer(superToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(post(TRUST + "/recompute").header(HttpHeaders.AUTHORIZATION, bearer(superToken)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/notifications").header(HttpHeaders.AUTHORIZATION, bearer(superToken)))
+                .andExpect(jsonPath("$.unreadCount").value(1))
+                .andExpect(jsonPath("$.notifications.content[0].type").value("COLLEGE_AT_RISK"))
+                .andExpect(jsonPath("$.notifications.content[0].title").value("TRUST-RISK College is now \"At risk\""))
+                .andExpect(jsonPath("$.notifications.content[0].link").value("/admin/trust"));
+        // the college itself is not told (only its welcome message is there)
+        mockMvc.perform(get("/api/v1/notifications").header(HttpHeaders.AUTHORIZATION, bearer(admin)))
+                .andExpect(jsonPath("$.notifications.content[0].type").value("WELCOME"));
+    }
+
+    @Test
     @DisplayName("service down: 503, and the previous scores stay")
     void serviceDown() throws Exception {
         onboardInstitution("TRUST-DOWN", "registrar@trustdown.test");

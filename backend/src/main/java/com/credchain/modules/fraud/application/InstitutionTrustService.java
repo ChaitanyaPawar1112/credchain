@@ -1,5 +1,7 @@
 package com.credchain.modules.fraud.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.fraud.api.dto.InstitutionTrustResponse;
@@ -14,6 +16,8 @@ import com.credchain.modules.fraud.infrastructure.InstitutionTrustScoreRepositor
 import com.credchain.modules.institution.domain.Institution;
 import com.credchain.modules.institution.domain.InstitutionStatus;
 import com.credchain.modules.institution.infrastructure.InstitutionRepository;
+import com.credchain.modules.notification.application.NotificationService;
+import com.credchain.modules.notification.domain.NotificationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,11 +50,22 @@ public class InstitutionTrustService {
     private final InstitutionTrustScoreRepository scoreRepository;
     private final InstitutionRepository institutionRepository;
     private final InstitutionTrustProperties properties;
+    private final AuditService audit;
+    private final NotificationService notifications;
     private final Clock clock;
 
-    /** Runs the analysis now and saves the result. 503 FRAUD_SERVICE_UNAVAILABLE when the service is down. */
+    /** The nightly run. */
     @Transactional
     public InstitutionTrustResponse recompute() {
+        return recompute(null);
+    }
+
+    /**
+     * Runs the analysis now and saves the result. 503 FRAUD_SERVICE_UNAVAILABLE when the service is down.
+     * requestedBy = the super admin who clicked "Run now" (audited); null for the nightly job.
+     */
+    @Transactional
+    public InstitutionTrustResponse recompute(UUID requestedBy) {
         ZoneId zone = ZoneId.of(properties.timeZone());
         Instant now = clock.instant();
         InstitutionActivity activity = activityQuery.load(LocalDate.ofInstant(now, zone), properties.historyDays(), zone);
@@ -69,14 +84,30 @@ public class InstitutionTrustService {
                 continue;   // the service only knows the ids we sent; anything else is ignored
             }
             InstitutionTrustScore score = scoreRepository.findById(id).orElseGet(() -> InstitutionTrustScore.of(id));
+            TrustLevel before = score.getLevel();
             score.update(trust.trustScore(), level(trust.trustScore()),
                     trust.reasons() == null ? List.of() : trust.reasons(),
                     trust.anomalies() == null ? 0 : trust.anomalies().size(), analysis.modelUsed(), now);
             scoreRepository.save(score);
+            if (score.getLevel() == TrustLevel.AT_RISK && before != TrustLevel.AT_RISK) {
+                warnAtRisk(id, score);
+            }
         }
         log.info("Institution trust analysis: {} colleges, {} days of activity, model used: {}",
                 analysis.institutions().size(), activity.days().size(), analysis.modelUsed());
+        if (requestedBy != null) {
+            audit.record(AuditAction.TRUST_SCORES_RECOMPUTED, requestedBy, null, null, null,
+                    "Recalculated the trust scores of " + analysis.institutions().size() + " colleges");
+        }
         return list();
+    }
+
+    /** Tells the super admins once, when a college newly falls to "At risk". */
+    private void warnAtRisk(UUID institutionId, InstitutionTrustScore score) {
+        String name = institutionRepository.findById(institutionId).map(Institution::getName).orElse("A college");
+        notifications.notifySuperAdmins(NotificationType.COLLEGE_AT_RISK, name + " is now \"At risk\"",
+                "Its AI trust score fell to " + score.getTrustScore() + ". "
+                        + String.join(" ", score.reasonList()), "/admin/trust");
     }
 
     /** Every approved or suspended college with its latest score, lowest first; not yet analysed ones last. */

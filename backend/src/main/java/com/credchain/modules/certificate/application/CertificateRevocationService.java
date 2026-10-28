@@ -1,16 +1,20 @@
 package com.credchain.modules.certificate.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.api.PageResponse;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.certificate.api.dto.CertificateResponse;
 import com.credchain.modules.certificate.api.dto.RevokeCertificateRequest;
 import com.credchain.modules.certificate.domain.Certificate;
+import com.credchain.modules.certificate.domain.CertificateRevocationRequestedEvent;
 import com.credchain.modules.certificate.domain.CertificateStatus;
 import com.credchain.modules.certificate.infrastructure.CertificateRepository;
 import com.credchain.modules.institution.application.InstitutionAccessGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ public class CertificateRevocationService {
 
     private final InstitutionAccessGuard accessGuard;
     private final CertificateRepository certificateRepository;
+    private final AuditService audit;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     @Transactional(readOnly = true)
@@ -53,6 +59,10 @@ public class CertificateRevocationService {
         certificate.requestRevocation(request.reason(), request.note(), clock.instant());   // 409 unless ISSUED
         log.warn("Revocation of certificate {} ({}) requested by {}: {}",
                 certificate.getCertificateNumber(), certificate.getId(), adminUserId, request.reason());
+        audit.record(AuditAction.CERTIFICATE_REVOKED, adminUserId, certificate.getInstitutionId(), "CERTIFICATE",
+                certificate.getId(), "Revoked certificate " + certificate.getCertificateNumber() + " of "
+                        + certificate.getStudentName() + " (reason: " + request.reason() + ")");
+        events.publishEvent(new CertificateRevocationRequestedEvent(certificate.getId()));
         return CertificateResponse.from(certificate);
     }
 

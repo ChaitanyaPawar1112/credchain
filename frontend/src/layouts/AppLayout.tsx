@@ -6,6 +6,7 @@ import { Avatar } from '../components/Avatar'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { NAV_BY_ROLE } from './navigation'
+import { NotificationBell } from './NotificationBell'
 
 /** Logged-in area: sidebar with the role's pages (a slide-in menu on phones). */
 export function AppLayout() {
@@ -33,8 +34,10 @@ export function AppLayout() {
 
   const sidebar = (
     <div className="bg-brand flex h-full flex-col text-white">
-      <div className="px-5 py-6">
+      <div className="flex items-center justify-between px-5 py-6">
         <Logo light />
+        {/* the phone header has its own bell */}
+        <div className="hidden md:block"><NotificationBell light /></div>
       </div>
       <p className="px-6 pb-2 text-[11px] font-semibold uppercase tracking-wider text-navy-300">Menu</p>
       <nav className="flex-1 space-y-1 px-3" aria-label="Main">
@@ -96,6 +99,7 @@ export function AppLayout() {
             <Icon name="menu" className="h-6 w-6" />
           </button>
           <Logo />
+          <div className="ml-auto"><NotificationBell align="right" /></div>
         </header>
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-10">
           <Outlet />

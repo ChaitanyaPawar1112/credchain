@@ -8,6 +8,9 @@ import com.credchain.modules.auth.api.dto.ChangePasswordRequest;
 import com.credchain.modules.auth.api.dto.LoginRequest;
 import com.credchain.modules.auth.api.dto.RegisterRequest;
 import com.credchain.modules.auth.api.dto.UserSummary;
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
+import com.credchain.modules.audit.domain.AuditEvent.Actor;
 import com.credchain.modules.user.domain.Role;
 import com.credchain.modules.user.domain.User;
 import com.credchain.modules.user.infrastructure.UserRepository;
@@ -34,6 +37,7 @@ public class AuthService {
     private final AccessTokenService accessTokenService;
     private final RefreshTokenService refreshTokenService;
     private final SecurityProperties properties;
+    private final AuditService audit;
     private final Clock clock;
 
     /** Used to spend the same time on "email not found" as on "wrong password". */
@@ -44,12 +48,14 @@ public class AuthService {
                        AccessTokenService accessTokenService,
                        RefreshTokenService refreshTokenService,
                        SecurityProperties properties,
+                       AuditService audit,
                        Clock clock) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
         this.properties = properties;
+        this.audit = audit;
         this.clock = clock;
         this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
@@ -82,6 +88,7 @@ public class AuthService {
         }
 
         log.info("New {} registered: {}", user.getRole(), user.getId());
+        audit.record(AuditAction.USER_REGISTERED, user, "Signed up as " + user.getRole().name().toLowerCase().replace('_', ' '));
         return issueTokens(user, client);
     }
 
@@ -95,11 +102,14 @@ public class AuthService {
 
         if (user == null) {
             passwordEncoder.matches(request.password(), dummyPasswordHash); // equal timing
+            audit.record(AuditAction.LOGIN_FAILED, Actor.anonymous(email), null, null, null,
+                    "Failed login: no account with this email");
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         Instant now = clock.instant();
         if (user.isLocked(now)) {
+            audit.record(AuditAction.LOGIN_BLOCKED, user, "Login refused: the account is locked after too many wrong passwords");
             throw new BusinessException(ErrorCode.ACCOUNT_LOCKED);
         }
 
@@ -108,14 +118,19 @@ public class AuthService {
                     properties.login().maxFailedAttempts(),
                     properties.login().lockDuration());
             log.debug("Failed login for user {}", user.getId());
+            audit.record(AuditAction.LOGIN_FAILED, user, user.isLocked(now)
+                    ? "Failed login: wrong password. The account is now locked for a while"
+                    : "Failed login: wrong password");
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!user.isActive()) {
+            audit.record(AuditAction.LOGIN_BLOCKED, user, "Login refused: the account is not active");
             throw new BusinessException(ErrorCode.ACCOUNT_NOT_ACTIVE);
         }
 
         user.recordSuccessfulLogin(now);
+        audit.record(AuditAction.LOGIN_SUCCEEDED, user, "Logged in");
         return issueTokens(user, client);
     }
 
@@ -143,6 +158,8 @@ public class AuthService {
 
     public void logoutAll(UUID userId) {
         refreshTokenService.revokeAll(userId);
+        userRepository.findById(userId)
+                .ifPresent(user -> audit.record(AuditAction.LOGGED_OUT_EVERYWHERE, user, "Logged out on every device"));
     }
 
     // ---------- Change password ----------
@@ -163,6 +180,7 @@ public class AuthService {
         user.changePassword(passwordEncoder.encode(request.newPassword()));
         refreshTokenService.revokeAll(user.getId());   // log out every device
         log.info("Password changed for user {} - all sessions revoked", userId);
+        audit.record(AuditAction.PASSWORD_CHANGED, user, "Changed their password (logged out on every device)");
     }
 
     // ---------- Current user ----------

@@ -1,5 +1,7 @@
 package com.credchain.modules.student.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
 import com.credchain.modules.institution.application.InstitutionAccessGuard;
@@ -69,6 +71,7 @@ public class StudentCsvImportService {
 
     private final StudentRepository studentRepository;
     private final InstitutionAccessGuard accessGuard;
+    private final AuditService audit;
     private final Validator validator;
 
     /** One parsed line: either a valid request or a list of problems. */
@@ -115,6 +118,9 @@ public class StudentCsvImportService {
             imported = students.size();
             log.info("CSV import: {} students added to institution {} ({} rows rejected)",
                     imported, institutionId, errors.size());
+            audit.record(AuditAction.STUDENTS_IMPORTED, adminUserId, institutionId, null, null,
+                    "Imported " + imported + " students from " + file.getOriginalFilename()
+                            + (errors.isEmpty() ? "" : " (" + errors.size() + " rows skipped)"));
         }
 
         return new StudentImportResult(rows.size(), validRows.size(), imported, errors.size(), dryRun, errors);

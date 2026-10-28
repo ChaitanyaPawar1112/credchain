@@ -1,5 +1,7 @@
 package com.credchain.modules.student.application;
 
+import com.credchain.modules.audit.application.AuditService;
+import com.credchain.modules.audit.domain.AuditAction;
 import com.credchain.common.api.PageResponse;
 import com.credchain.common.exception.BusinessException;
 import com.credchain.common.exception.ErrorCode;
@@ -27,6 +29,7 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final InstitutionAccessGuard accessGuard;
+    private final AuditService audit;
 
     @Transactional
     public StudentResponse create(UUID adminUserId, CreateStudentRequest request) {
@@ -50,6 +53,8 @@ public class StudentService {
         }
 
         log.info("Student {} added to institution {}", student.getId(), institutionId);
+        audit.record(AuditAction.STUDENT_ADDED, adminUserId, institutionId, "STUDENT", student.getId(),
+                "Added student " + student.getFullName() + " (" + student.getEnrollmentNo() + ")");
         return StudentResponse.from(student);
     }
 
