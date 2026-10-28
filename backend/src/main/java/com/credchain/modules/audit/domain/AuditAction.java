@@ -27,6 +27,8 @@ public enum AuditAction {
     BATCH_DELETED(AuditCategory.CERTIFICATE),
     BATCH_ISSUED(AuditCategory.CERTIFICATE),
     CERTIFICATE_REVOKED(AuditCategory.CERTIFICATE),
+    SHARE_LINK_CREATED(AuditCategory.CERTIFICATE),
+    SHARE_LINK_REVOKED(AuditCategory.CERTIFICATE),
 
     TRUST_SCORES_RECOMPUTED(AuditCategory.SYSTEM);
 

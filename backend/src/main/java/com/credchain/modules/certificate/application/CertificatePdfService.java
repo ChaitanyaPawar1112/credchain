@@ -102,7 +102,7 @@ public class CertificatePdfService {
         log.info("PDF created for certificate {} ({} bytes)", certificate.getCertificateNumber(), pdf.length);
     }
 
-    PdfFile read(Certificate certificate) {
+    public PdfFile read(Certificate certificate) {
         if (!certificate.hasPdf()) {
             throw new BusinessException(ErrorCode.CERTIFICATE_PDF_NOT_READY);
         }

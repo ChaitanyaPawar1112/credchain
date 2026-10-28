@@ -5,6 +5,8 @@ import { PublicLayout } from './layouts/PublicLayout'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { ApplyCollegePage } from './pages/ApplyCollegePage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { SharedCertificatePage } from './pages/SharedCertificatePage'
+import { ShareLinksPage } from './pages/student/ShareLinksPage'
 import { AuditLogPage } from './pages/AuditLogPage'
 import { DashboardHome } from './pages/DashboardHome'
 import { HomePage } from './pages/HomePage'
@@ -40,6 +42,7 @@ export function App() {
         <Route index element={<HomePage />} />
         <Route path="verify" element={<VerifyPage />} />
         <Route path="verify/:certHash" element={<VerifyPage />} />
+        <Route path="s/:token" element={<SharedCertificatePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="apply" element={<ApplyCollegePage />} />
@@ -73,6 +76,7 @@ export function App() {
             </>
           )}
           {role === 'STUDENT' && <Route path="certificates" element={<MyCertificatesPage />} />}
+          {role === 'STUDENT' && <Route path="share-links" element={<ShareLinksPage />} />}
         </Route>
       ))}
 

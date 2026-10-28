@@ -54,7 +54,13 @@ public enum ErrorCode {
 
     // ---------- Fraud detection (Phase 7) ----------
     FRAUD_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE,
-            "The photo and scan check is not available right now. Please try again later, or check the PDF or QR link instead");
+            "The photo and scan check is not available right now. Please try again later, or check the PDF or QR link instead"),
+
+    // ---------- Share links (Phase 8.4) ----------
+    SHARE_LINK_UNAVAILABLE(HttpStatus.NOT_FOUND,
+            "This link does not exist, has expired, or was turned off by the student"),
+    SHARE_LINK_LIMIT_REACHED(HttpStatus.CONFLICT,
+            "You have too many active share links. Turn off one you no longer need, then try again");
 
     private final HttpStatus status;
     private final String defaultMessage;

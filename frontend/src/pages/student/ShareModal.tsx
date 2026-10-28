@@ -1,13 +1,25 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import QRCode from 'qrcode'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
+import { EXPIRY_OPTIONS, shareApi, type ShareLink } from '../../api/share'
 import type { MyCertificate } from '../../api/student'
+import { Alert } from '../../components/Alert'
 import { Button } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { Modal } from '../../components/Modal'
+import { SelectField } from '../../components/SelectField'
+import { TextField } from '../../components/TextField'
+import { errorMessage } from '../../components/errors'
+import { formatDate } from '../../lib/format'
 
-/** The public verify link of a certificate, as text, a QR code and quick share buttons. Anyone with it can check the certificate. */
+/**
+ * Share a certificate: a named link that expires and can be turned off (with a view count), or the permanent
+ * public verify link. Either way as text, a QR code and quick share buttons.
+ */
 export function ShareModal({ certificate, onClose }: { certificate: MyCertificate; onClose: () => void }) {
-  const url = certificate.verificationUrl
+  const [created, setCreated] = useState<ShareLink | null>(null)
+  const url = created?.url ?? certificate.verificationUrl
   const [qr, setQr] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -39,8 +51,19 @@ export function ShareModal({ certificate, onClose }: { certificate: MyCertificat
 
   return (
     <Modal title="Share your certificate" onClose={onClose} footer={<Button onClick={onClose}>Done</Button>}>
-      <p className="text-sm text-slate-600">
-        Anyone with this link sees whether <strong>{certificate.title}</strong> is genuine, straight from the blockchain. They don't need an account.
+      {created ? (
+        <Alert tone="success">
+          Your link for <strong>{created.name}</strong> works until {formatDate(created.expiresAt)}. You can see how often it was
+          opened, or turn it off, under <Link to="/student/share-links" className="font-semibold underline">Share links</Link>.
+        </Alert>
+      ) : (
+        <NamedLinkForm certificate={certificate} onCreated={setCreated} />
+      )}
+      <p className="mt-5 text-sm text-slate-600">
+        {created
+          ? <>Anyone with this link sees whether <strong>{certificate.title}</strong> is genuine, straight from the blockchain.</>
+          : <>Or share the permanent verify link below. Anyone with it sees whether <strong>{certificate.title}</strong> is genuine,
+              straight from the blockchain. They don't need an account.</>}
       </p>
       <div className="mt-5 flex flex-col items-center gap-5 sm:flex-row sm:items-start">
         <div className="flex h-[156px] w-[156px] shrink-0 items-center justify-center rounded-2xl bg-white p-2 ring-1 ring-slate-200">
@@ -49,7 +72,7 @@ export function ShareModal({ certificate, onClose }: { certificate: MyCertificat
         </div>
         <div className="w-full min-w-0 space-y-3">
           <div className="flex items-center gap-2 rounded-xl bg-slate-50 p-2 ring-1 ring-slate-200">
-            <input readOnly value={url} aria-label="Verify link" onFocus={(e) => e.target.select()}
+            <input readOnly value={url} aria-label={created ? 'Share link' : 'Verify link'} onFocus={(e) => e.target.select()}
                    className="min-w-0 flex-1 bg-transparent px-1 font-mono text-xs text-slate-700 outline-none" />
             <button type="button" onClick={copy}
                     className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-navy-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-navy-800">
@@ -74,5 +97,37 @@ export function ShareModal({ certificate, onClose }: { certificate: MyCertificat
         </div>
       </div>
     </Modal>
+  )
+}
+
+/** Name + how long: creates a link that only works for that long and can be turned off. */
+function NamedLinkForm({ certificate, onCreated }: { certificate: MyCertificate; onCreated: (link: ShareLink) => void }) {
+  const queryClient = useQueryClient()
+  const [name, setName] = useState('')
+  const [days, setDays] = useState('30')
+  const create = useMutation({
+    mutationFn: () => shareApi.create({ certificateId: certificate.id, name: name.trim(), expiresInDays: Number(days) }),
+    onSuccess: (link) => {
+      queryClient.invalidateQueries({ queryKey: ['student', 'share-links'] })
+      onCreated(link)
+    },
+  })
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (name.trim()) create.mutate()
+  }
+  return (
+    <form onSubmit={submit} className="rounded-2xl bg-navy-50/60 p-4 ring-1 ring-navy-100">
+      <p className="text-sm font-semibold text-slate-900">Create a private link (recommended)</p>
+      <p className="mt-0.5 text-xs text-slate-600">It stops working after the time you choose, you can turn it off any time,
+        and you see how often it was opened.</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_9rem_auto] sm:items-end">
+        <TextField label="Who is it for?" placeholder="e.g. Infosys HR" maxLength={100} value={name}
+                   onChange={(e) => setName(e.target.value)} />
+        <SelectField label="Works for" options={EXPIRY_OPTIONS} value={days} onChange={(e) => setDays(e.target.value)} />
+        <Button type="submit" loading={create.isPending} disabled={!name.trim()}>Create link</Button>
+      </div>
+      {create.isError && <div className="mt-3"><Alert tone="error">{errorMessage(create.error)}</Alert></div>}
+    </form>
   )
 }
