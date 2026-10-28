@@ -7,6 +7,9 @@ browsers never do.
 The public endpoint is `POST /api/v1/public/verify/document` on the backend. The backend sends the file here, looks up
 the certificate the QR code points to, and compares the printed text with that official record.
 
+On the website this is the **Photo or scan** tab of the Verify page; the trust scores below are the super admin's
+**College trust scores** page.
+
 It never says a document is genuine. Only the blockchain check (QR code or "Upload PDF") proves that. This service
 gives a **risk score** with reasons, so a verifier knows what to look at.
 
@@ -44,7 +47,7 @@ per college with reasons:
 ## API
 
 - `POST /v1/analyze/institutions` (JSON: `today`, `institutions[]`, `days[]`) returns a trust score per college
-- `GET /health` returns `{"status":"UP","ocr":true}`
+- `GET /health` returns `{"status":"UP","version":"1.1.0","ocr":true}`
 - `POST /v1/analyze/document` (multipart field `file`: PDF, JPEG, PNG or WebP, up to 5 MB) returns
   `riskScore`, `riskLevel`, `summary`, `qr.certHash`, `text.text`, `signals[]` and `elaImage` (base64 PNG)
 - Interactive docs: http://localhost:8090/docs

@@ -27,7 +27,7 @@ services:
   fraud:
     # AI fraud-detection service (Python). Built from ../fraud-service; only the backend calls it.
     build: ../fraud-service
-    image: credchain-fraud:1.0.0
+    image: credchain-fraud:1.1.0
     container_name: credchain-fraud
     environment:
       # Shared key the backend sends in X-Api-Key (set it in infra/.env; empty = no key, local testing only)
