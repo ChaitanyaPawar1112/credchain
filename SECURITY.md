@@ -34,7 +34,8 @@ Set by nginx (`frontend/security-headers.conf`):
 - `Referrer-Policy: strict-origin-when-cross-origin`: other sites never see a full share link.
 - `Permissions-Policy`: no camera, microphone or location.
 
-HTTPS and `Strict-Transport-Security` are added where the app is put online (step 9.4), in front of nginx.
+Online, Caddy (`infra/Caddyfile`) sits in front of nginx: it serves HTTPS with a Let's Encrypt certificate,
+redirects plain HTTP and adds `Strict-Transport-Security` (one year). See `infra/DEPLOY.md`.
 
 ## What the October 2026 review changed
 

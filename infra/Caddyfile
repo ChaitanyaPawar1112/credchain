@@ -1,0 +1,10 @@
+# HTTPS for CredChain on a cloud server (docker compose --profile cloud, see infra/DEPLOY.md).
+# Caddy gets and renews the Let's Encrypt certificate for DOMAIN by itself and sends plain HTTP to http:// too,
+# where it answers with a redirect to https://.
+{$DOMAIN} {
+	encode zstd gzip
+	# Browsers must use HTTPS for this site from now on (one year)
+	header Strict-Transport-Security "max-age=31536000"
+	# Caddy replaces any X-Forwarded-For the visitor sent with their real address
+	reverse_proxy web:80
+}

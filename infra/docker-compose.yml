@@ -7,6 +7,8 @@ name: credchain
 #   docker compose --profile app up -d --build
 #                                         the whole app in Docker: also its own database, the backend and the
 #                                         website on http://localhost:8088 (stop the IntelliJ backend first)
+#   docker compose --profile app --profile cloud up -d --build
+#                                         online on a cloud server: adds HTTPS for DOMAIN (see infra/DEPLOY.md)
 
 services:
   storage:
@@ -118,6 +120,28 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  proxy:
+    # HTTPS in front of the website (Caddy). Gets a free Let's Encrypt certificate for DOMAIN by itself.
+    profiles: ["cloud"]
+    image: caddy:2.10-alpine
+    container_name: credchain-proxy
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data       # the certificate (kept, so a restart does not ask Let's Encrypt again)
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   storage-data:
   db-data:
+  caddy-data:
+  caddy-config:

@@ -71,6 +71,7 @@ docker compose --profile app up -d --build
 Then open **http://localhost:8088**. The first build downloads a lot and takes several minutes; later ones are quick.
 This database is separate from the PostgreSQL on your computer, so the super admin from `infra/.env` is created fresh.
 `docker compose --profile app down` stops everything (add `-v` to also delete its data).
+To put the same setup online with HTTPS, follow `infra/DEPLOY.md`.
 
 ## Try the whole flow
 
