@@ -1,5 +1,6 @@
 name: credchain
 
+# Only the website's port is open to other computers; the helpers listen on this computer only (127.0.0.1).
 # Two ways to use this file (run from the infra folder; values come from infra/.env, never committed):
 #   docker compose up -d                  only what the backend needs while you run it in IntelliJ
 #                                         (file storage, AI service, test mail server)
@@ -19,8 +20,8 @@ services:
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
       RUSTFS_CONSOLE_ENABLE: "true"
     ports:
-      - "9000:9000"   # S3 API (used by the backend)
-      - "9001:9001"   # web console (for you, in the browser)
+      - "127.0.0.1:9000:9000"   # S3 API (used by the backend)
+      - "127.0.0.1:9001:9001"   # web console (for you, in the browser)
     volumes:
       - storage-data:/data
     healthcheck:
@@ -40,7 +41,7 @@ services:
       # Shared key the backend sends in X-Api-Key (set it in infra/.env; empty = no key, local testing only)
       FRAUD_API_KEY: ${FRAUD_API_KEY:-}
     ports:
-      - "8090:8000"   # http://localhost:8090/health and /docs
+      - "127.0.0.1:8090:8000"   # http://localhost:8090/health and /docs
     restart: unless-stopped
 
   mail:
@@ -48,8 +49,8 @@ services:
     image: axllent/mailpit:v1.21.8
     container_name: credchain-mail
     ports:
-      - "1025:1025"   # SMTP (used by the backend)
-      - "8025:8025"   # inbox in the browser: http://localhost:8025
+      - "127.0.0.1:1025:1025"   # SMTP (used by the backend)
+      - "127.0.0.1:8025:8025"   # inbox in the browser: http://localhost:8025
     restart: unless-stopped
 
   db:

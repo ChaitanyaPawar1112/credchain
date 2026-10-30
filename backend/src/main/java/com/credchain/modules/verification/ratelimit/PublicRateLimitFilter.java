@@ -17,9 +17,11 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.util.Set;
 
 /**
- * Stops one client from hammering the public verification API (scraping hashes, flooding PDF uploads).
+ * Stops one client from hammering what anyone can call without logging in: the public verification API (scraping
+ * hashes, flooding PDF uploads) and the sign-in forms (guessing passwords across many accounts, spam sign-ups).
  * Over the limit: 429 with code RATE_LIMITED and a Retry-After header.
  */
 @Slf4j
@@ -27,6 +29,11 @@ import java.time.Clock;
 public class PublicRateLimitFilter extends OncePerRequestFilter {
 
     static final String PUBLIC_PREFIX = "/api/v1/public/";
+    /** POST only; the account lockout after wrong passwords still applies on top of this. */
+    static final Set<String> SIGN_IN_PATHS = Set.of(
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/institutions/applications");
 
     private final PublicRateLimitProperties properties;
     private final HandlerExceptionResolver resolver;
@@ -42,25 +49,39 @@ public class PublicRateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !properties.enabled() || !request.getRequestURI().startsWith(PUBLIC_PREFIX);
+        return !properties.enabled() || (!isPublic(request) && !isSignIn(request));
+    }
+
+    private static boolean isPublic(HttpServletRequest request) {
+        return request.getRequestURI().startsWith(PUBLIC_PREFIX);
+    }
+
+    private static boolean isSignIn(HttpServletRequest request) {
+        return HttpMethod.POST.matches(request.getMethod()) && SIGN_IN_PATHS.contains(request.getRequestURI());
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        boolean upload = HttpMethod.POST.matches(request.getMethod());
         String ip = clientIp(request);
-        FixedWindowRateLimiter.Decision decision = upload
-                ? limiter.tryAcquire("upload:" + ip, properties.uploadsPerMinute())
-                : limiter.tryAcquire("lookup:" + ip, properties.lookupsPerMinute());
+        boolean signIn = isSignIn(request);
+        FixedWindowRateLimiter.Decision decision;
+        if (signIn) {
+            decision = limiter.tryAcquire("sign-in:" + ip, properties.signInsPerMinute());
+        } else if (HttpMethod.POST.matches(request.getMethod())) {
+            decision = limiter.tryAcquire("upload:" + ip, properties.uploadsPerMinute());
+        } else {
+            decision = limiter.tryAcquire("lookup:" + ip, properties.lookupsPerMinute());
+        }
         if (decision.allowed()) {
             chain.doFilter(request, response);
             return;
         }
         log.warn("Rate limit hit on {} {} by {}", request.getMethod(), request.getRequestURI(), ip);
         response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(decision.retryAfterSeconds()));
+        String what = signIn ? "attempts" : "verification requests";
         resolver.resolveException(request, response, null, new BusinessException(ErrorCode.RATE_LIMITED,
-                "Too many verification requests. Please try again in " + decision.retryAfterSeconds() + " seconds."));
+                "Too many " + what + ". Please try again in " + decision.retryAfterSeconds() + " seconds."));
     }
 
     /** First address in X-Forwarded-For when we sit behind our own proxy, otherwise the connection's address. */
