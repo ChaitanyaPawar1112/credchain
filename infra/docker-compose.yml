@@ -1,5 +1,15 @@
 name: credchain
 
+# Only the website's port is open to other computers; the helpers listen on this computer only (127.0.0.1).
+# Two ways to use this file (run from the infra folder; values come from infra/.env, never committed):
+#   docker compose up -d                  only what the backend needs while you run it in IntelliJ
+#                                         (file storage, AI service, test mail server)
+#   docker compose --profile app up -d --build
+#                                         the whole app in Docker: also its own database, the backend and the
+#                                         website on http://localhost:8088 (stop the IntelliJ backend first)
+#   docker compose --profile app --profile cloud up -d --build
+#                                         online on a cloud server: adds HTTPS for DOMAIN (see infra/DEPLOY.md)
+
 services:
   storage:
     # S3-compatible object storage (RustFS). Pinned version for repeatable setups.
@@ -12,8 +22,8 @@ services:
       RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
       RUSTFS_CONSOLE_ENABLE: "true"
     ports:
-      - "9000:9000"   # S3 API (used by the backend)
-      - "9001:9001"   # web console (for you, in the browser)
+      - "127.0.0.1:9000:9000"   # S3 API (used by the backend)
+      - "127.0.0.1:9001:9001"   # web console (for you, in the browser)
     volumes:
       - storage-data:/data
     healthcheck:
@@ -33,7 +43,7 @@ services:
       # Shared key the backend sends in X-Api-Key (set it in infra/.env; empty = no key, local testing only)
       FRAUD_API_KEY: ${FRAUD_API_KEY:-}
     ports:
-      - "8090:8000"   # http://localhost:8090/health and /docs
+      - "127.0.0.1:8090:8000"   # http://localhost:8090/health and /docs
     restart: unless-stopped
 
   mail:
@@ -41,9 +51,97 @@ services:
     image: axllent/mailpit:v1.21.8
     container_name: credchain-mail
     ports:
-      - "1025:1025"   # SMTP (used by the backend)
-      - "8025:8025"   # inbox in the browser: http://localhost:8025
+      - "127.0.0.1:1025:1025"   # SMTP (used by the backend)
+      - "127.0.0.1:8025:8025"   # inbox in the browser: http://localhost:8025
+    restart: unless-stopped
+
+  db:
+    # The app's own PostgreSQL (separate from the one installed on your laptop; not reachable from outside Docker)
+    profiles: ["app"]
+    image: postgres:17-alpine
+    container_name: credchain-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-credchain}
+      POSTGRES_USER: ${DB_USERNAME:-credchain}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    # Spring Boot API, built from ../backend. Only the website container talks to it.
+    profiles: ["app"]
+    build: ../backend
+    image: credchain-backend:latest
+    container_name: credchain-backend
+    env_file: .env
+    environment:
+      # These replace the "localhost" values in .env with the names of the other containers
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: "5432"
+      S3_ENDPOINT: http://storage:9000
+      FRAUD_SERVICE_URL: http://fraud:8000
+      MAIL_HOST: mail
+      MAIL_PORT: "1025"
+      # Links in QR codes, share links and emails point at the website below
+      CORS_ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost:8088}
+      VERIFICATION_BASE_URL: ${PUBLIC_URL:-http://localhost:8088}/verify
+      SHARE_BASE_URL: ${PUBLIC_URL:-http://localhost:8088}/s
+      WEB_BASE_URL: ${PUBLIC_URL:-http://localhost:8088}
+      # The website's nginx sets X-Forwarded-For to the visitor's real address
+      TRUST_FORWARDED_FOR: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+      storage:
+        condition: service_healthy
+      fraud:
+        condition: service_started
+      mail:
+        condition: service_started
+    restart: unless-stopped
+
+  web:
+    # The website (nginx), built from ../frontend; it forwards /api/ to the backend
+    profiles: ["app"]
+    build: ../frontend
+    image: credchain-web:latest
+    container_name: credchain-web
+    ports:
+      - "${WEB_PORT:-8088}:80"   # http://localhost:8088
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  proxy:
+    # HTTPS in front of the website (Caddy). Gets a free Let's Encrypt certificate for DOMAIN by itself.
+    profiles: ["cloud"]
+    image: caddy:2.10-alpine
+    container_name: credchain-proxy
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data       # the certificate (kept, so a restart does not ask Let's Encrypt again)
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   storage-data:
+  db-data:
+  caddy-data:
+  caddy-config:

@@ -58,6 +58,21 @@ The links inside QR codes and share buttons come from the backend's `VERIFICATIO
 (default `http://localhost:5173/s`) and the links inside emails from `WEB_BASE_URL`
 (default `http://localhost:5173`). Change them together when deploying.
 
+### Or run the whole app in Docker
+
+This builds the backend and the website into containers and starts them with their own database, the file storage,
+the AI service and Mailpit. Stop the backend in IntelliJ first (both would use the same blockchain wallet).
+
+```
+cd infra
+docker compose --profile app up -d --build
+```
+
+Then open **http://localhost:8088**. The first build downloads a lot and takes several minutes; later ones are quick.
+This database is separate from the PostgreSQL on your computer, so the super admin from `infra/.env` is created fresh.
+`docker compose --profile app down` stops everything (add `-v` to also delete its data).
+To put the same setup online with HTTPS, follow `infra/DEPLOY.md`.
+
 ## Try the whole flow
 
 1. **Super admin.** Log in with the super admin account from the backend's settings

@@ -3,6 +3,7 @@ package com.credchain.modules.verification.api;
 import com.credchain.support.AbstractIntegrationTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -11,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,7 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Public verification rate limit")
 @TestPropertySource(properties = {
         "app.public-rate-limit.lookups-per-minute=3",
-        "app.public-rate-limit.uploads-per-minute=2"
+        "app.public-rate-limit.uploads-per-minute=2",
+        "app.public-rate-limit.sign-ins-per-minute=2"
 })
 class PublicRateLimitIntegrationTest extends AbstractIntegrationTest {
 
@@ -63,6 +66,27 @@ class PublicRateLimitIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isTooManyRequests());
 
         mockMvc.perform(get(VERIFY, HASH).with(from("198.51.100.4"))).andExpect(status().isOk());   // lookups still fine
+    }
+
+    @Test
+    @DisplayName("login attempts are limited per client, separately from verification")
+    void signInsLimited() throws Exception {
+        String wrong = """
+                {"email":"nobody@example.com","password":"Wrong-Password-1"}""";
+        for (int i = 0; i < 2; i++) {
+            mockMvc.perform(post("/api/v1/auth/login").with(from("198.51.100.6"))
+                            .contentType(MediaType.APPLICATION_JSON).content(wrong))
+                    .andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(post("/api/v1/auth/login").with(from("198.51.100.6"))
+                        .contentType(MediaType.APPLICATION_JSON).content(wrong))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("RATE_LIMITED"));
+
+        mockMvc.perform(post("/api/v1/auth/login").with(from("198.51.100.7"))
+                        .contentType(MediaType.APPLICATION_JSON).content(wrong))
+                .andExpect(status().isUnauthorized());                                       // another client
+        mockMvc.perform(get(VERIFY, HASH).with(from("198.51.100.6"))).andExpect(status().isOk());   // own bucket
     }
 
     @Test

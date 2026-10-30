@@ -144,6 +144,7 @@ app:
     enabled: true
     lookups-per-minute: 30       # checks by hash / QR link
     uploads-per-minute: 10       # PDF uploads
+    sign-ins-per-minute: 10      # login, sign-up and college applications (on top of the account lockout)
     trust-forwarded-for: ${TRUST_FORWARDED_FOR:false}   # true only behind our own nginx / load balancer
 
   # ---------- AI fraud-detection service (Phase 7) ----------
